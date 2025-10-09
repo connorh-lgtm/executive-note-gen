@@ -1,0 +1,10 @@
+{
+  "feedback_type": "positive",
+  "original_output": {
+    "subject": "test",
+    "body": "test"
+  },
+  "improved_version": null,
+  "metadata": {},
+  "timestamp": "2025-10-08T20:16:00Z"
+}

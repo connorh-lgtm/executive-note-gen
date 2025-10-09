@@ -1,0 +1,16 @@
+{
+  "feedback_type": "negative",
+  "original_output": {
+    "subject": "Coffee in Boston next week?",
+    "body": "Hi Anthony,\n\nI'll be in Boston December 14th-16th and wanted to reach out given CEO Yamani Rangan's vision of hybrid teams with people and AI agents working together.\n\nYour engineering leadership at HubSpot\u2014scaling product development while maintaining the innovation velocity that built the platform\u2014puts you at the center of this transformation. The challenge most VPs face is delivering on AI promises without overwhelming existing teams or compromising quality.\n\nDevin, the AI software engineer, has rolled out in production at [Citi](https://www.americanbanker.com/news/citi-is-rolling-out-agentic-ai-to-its-40-000-developers) and [Goldman Sachs](https://www.cnbc.com/2025/07/11/goldman-sachs-autonomous-coder-pilot-marks-major-ai-milestone.html). On average, engineering teams see 6\u201312x efficiency gains while freeing developers for customer-facing innovation.\n\nWould you be open to coffee one morning? I promise it'll be more energizing than a New England road race.\n\nBest,\nJake"
+  },
+  "improved_version": "Hi Anthony,\n\nI\u2019ve been cycling for the past 15 years and love the feeling of the bike tires on a trail. Saw you are quite the cyclist yourself (8th-place finish in a NE road race) -- is this still something you find yourself doing? Even when traveling I try to make sure I carve out time to run/bike. \n\nI\u2019m Jake and I\u2019m a Director here at Cognition and wanted to reach out to you based on similar orgs I\u2019m meeting with to discuss AI agents for software development. I'll be in Boston December 14th-16th and wanted to reach out given CEO Yamani Rangan's vision of hybrid teams with people and AI agents working together.\n\nDevin, the AI software engineer, has rolled out in production at Citi, Goldman Sachs, and Ramp among others. On average, engineering teams see 6\u201312x efficiency gains while freeing developers for customer-facing innovation.\n\nWould you be open to coffee and a bike ride one morning I\u2019m in town? \n\nBest,\nJake\n",
+  "metadata": {
+    "message_type": "in_person_ask",
+    "prospect_name": "Anthony Roldan",
+    "prospect_company": "Hubspot",
+    "manager_name": "Jake V",
+    "model_provider": "anthropic"
+  },
+  "timestamp": "2025-10-06T21:32:13.993Z"
+}

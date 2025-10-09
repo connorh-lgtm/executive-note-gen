@@ -1,0 +1,160 @@
+"""
+FastAPI backend for Executive Note Generator
+"""
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
+from typing import Optional
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+from app.generator import generate_outreach_emails
+from app.bio_summarizer import summarize_bio
+
+app = FastAPI(title="Executive Note Generator", version="1.0.0")
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Serve static files
+static_path = os.path.join(os.path.dirname(__file__), "..", "static")
+app.mount("/static", StaticFiles(directory=static_path), name="static")
+
+
+class GenerateRequest(BaseModel):
+    """Request model for email generation"""
+    prospect_name: str = Field(..., min_length=1, description="Prospect's full name")
+    prospect_title: str = Field(..., min_length=1, description="Prospect's job title")
+    prospect_company: str = Field(..., min_length=1, description="Prospect's company name")
+    unique_fact: str = Field(..., min_length=1, description="Unique fact about the prospect")
+    business_initiative: str = Field(..., min_length=1, description="Business initiative or pain point")
+    manager_name: str = Field(default="[Manager's Name]", description="Your name (the sender)")
+    message_type: str = Field(..., description="Type of message: cold_outreach, in_person_ask, or executive_alignment")
+    meeting_purpose: Optional[str] = Field(None, description="Purpose of in-person meeting (for in_person_ask type)")
+    linkedin_insight: Optional[str] = Field(None, description="AI-generated insight from LinkedIn bio (optional supplement to unique_fact)")
+
+
+class GenerateResponse(BaseModel):
+    """Response model with single email template"""
+    subject: str
+    body: str
+    metadata: dict
+
+
+class FeedbackRequest(BaseModel):
+    """Request model for feedback submission"""
+    feedback_type: str = Field(..., description="positive or negative")
+    original_output: dict = Field(..., description="Original generated output")
+    improved_version: Optional[str] = Field(None, description="User's improved version")
+    metadata: dict = Field(..., description="Generation metadata")
+    timestamp: str = Field(..., description="ISO timestamp")
+
+
+class BioSummaryRequest(BaseModel):
+    """Request model for bio summarization"""
+    bio_text: str = Field(..., min_length=20, description="Full bio/about section text")
+    prospect_name: Optional[str] = Field(None, description="Prospect name for context")
+    prospect_title: Optional[str] = Field(None, description="Prospect title for context")
+
+
+@app.get("/")
+async def root():
+    """Serve the landing page"""
+    index_path = os.path.join(os.path.dirname(__file__), "..", "static", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "Executive Note Generator API", "docs": "/docs"}
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "executive-note-gen"}
+
+
+@app.post("/api/generate", response_model=GenerateResponse)
+async def generate(request: GenerateRequest):
+    """
+    Generate 1 optimized executive outreach email template
+    """
+    try:
+        result = await generate_outreach_emails(
+            message_type=request.message_type,
+            prospect_name=request.prospect_name,
+            prospect_title=request.prospect_title,
+            prospect_company=request.prospect_company,
+            unique_fact=request.unique_fact,
+            business_initiative=request.business_initiative,
+            manager_name=request.manager_name,
+            meeting_purpose=request.meeting_purpose,
+            linkedin_insight=request.linkedin_insight or "",
+            model_provider="anthropic"
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+
+
+@app.post("/api/feedback")
+async def submit_feedback(request: FeedbackRequest):
+    """
+    Save user feedback for improving future outputs
+    """
+    import json
+    from datetime import datetime
+    
+    try:
+        # Create feedback directory if it doesn't exist
+        feedback_dir = os.path.join(os.path.dirname(__file__), "..", "feedback")
+        os.makedirs(feedback_dir, exist_ok=True)
+        
+        # Create feedback file path with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        feedback_file = os.path.join(feedback_dir, f"feedback_{timestamp}.json")
+        
+        # Save feedback to file
+        feedback_data = request.model_dump()
+        with open(feedback_file, 'w') as f:
+            json.dump(feedback_data, f, indent=2)
+        
+        return {"status": "success", "message": "Feedback saved successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save feedback: {str(e)}")
+
+
+@app.post("/api/summarize-bio")
+async def summarize_bio_endpoint(request: BioSummaryRequest):
+    """
+    Summarize a LinkedIn bio into one compelling sentence
+    """
+    try:
+        summary = await summarize_bio(
+            bio_text=request.bio_text,
+            prospect_name=request.prospect_name or "",
+            prospect_title=request.prospect_title or ""
+        )
+        
+        return {
+            "summary": summary,
+            "status": "success" if summary else "no_summary"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to summarize bio: {str(e)}")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
