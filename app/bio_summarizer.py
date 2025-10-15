@@ -1,7 +1,37 @@
 """
 Bio summarization using Claude API
 """
+import re
 from app.model_client import call_anthropic_text
+
+
+def truncate_at_sentence_boundary(text: str, max_chars: int = 1000, search_range: int = 200) -> str:
+    """
+    Truncate text at the last complete sentence within the character limit.
+    
+    Args:
+        text: The text to truncate
+        max_chars: Target maximum character count
+        search_range: Additional characters to search for sentence boundaries
+    
+    Returns:
+        Truncated text ending at a sentence boundary when possible
+    """
+    if len(text) <= max_chars:
+        return text
+    
+    search_end = min(len(text), max_chars + search_range)
+    search_text = text[:search_end]
+    
+    sentence_endings = [m.end() for m in re.finditer(r'[.!?]\s', search_text)]
+    
+    valid_endings = [pos for pos in sentence_endings if pos <= max_chars + search_range]
+    
+    if valid_endings:
+        last_sentence_end = valid_endings[-1]
+        return text[:last_sentence_end].rstrip()
+    
+    return text[:max_chars]
 
 
 async def summarize_bio(bio_text: str, prospect_name: str = "", prospect_title: str = "") -> str:
@@ -44,9 +74,11 @@ Output format: One sentence, 15-30 words, factual and specific."""
     if prospect_title:
         context += f"Title: {prospect_title}\n"
     
+    truncated_bio = truncate_at_sentence_boundary(bio_text, max_chars=1000, search_range=200)
+    
     user_prompt = f"""{context}
 Bio text:
-{bio_text[:1000]}
+{truncated_bio}
 
 Extract ONE compelling unique fact as a single sentence (15-30 words).
 Return ONLY the sentence, no explanation or preamble."""
