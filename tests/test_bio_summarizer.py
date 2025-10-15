@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, AsyncMock
-from app.bio_summarizer import summarize_bio, _bio_summary_cache
+from app.bio_summarizer import summarize_bio, _bio_summary_cache, BioValidationError, BioSummarizationError
 
 
 @pytest.mark.asyncio
@@ -58,16 +58,16 @@ async def test_different_bios_not_cached():
 
 
 @pytest.mark.asyncio
-async def test_empty_bio_returns_empty_string():
-    """Test that empty or very short bios return empty string"""
+async def test_empty_bio_raises_validation_error():
+    """Test that empty or very short bios raise BioValidationError"""
     
     _bio_summary_cache.clear()
     
-    result = await summarize_bio("", "Test User", "CEO")
-    assert result == ""
+    with pytest.raises(BioValidationError, match="Bio text too short"):
+        await summarize_bio("", "Test User", "CEO")
     
-    result = await summarize_bio("Short", "Test User", "CEO")
-    assert result == ""
+    with pytest.raises(BioValidationError, match="Bio text too short"):
+        await summarize_bio("Short", "Test User", "CEO")
     
     assert len(_bio_summary_cache) == 0
 
@@ -82,7 +82,7 @@ async def test_cache_key_based_on_truncated_bio():
     long_bio = short_bio + (" " * 2000) + "This extra content should be truncated."
     
     with patch('app.bio_summarizer.call_anthropic_text', new_callable=AsyncMock) as mock_api:
-        mock_api.return_value = "Test summary"
+        mock_api.return_value = "Test executive with proven track record in technology"
         
         result1 = await summarize_bio(short_bio, "Test", "CEO")
         

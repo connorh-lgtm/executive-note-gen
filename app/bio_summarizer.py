@@ -7,6 +7,16 @@ from collections import OrderedDict
 from typing import Tuple
 from app.model_client import call_anthropic_text
 
+
+class BioValidationError(Exception):
+    """Raised when bio input fails validation checks"""
+    pass
+
+
+class BioSummarizationError(Exception):
+    """Raised when bio summarization fails due to API or model errors"""
+    pass
+
 # Cache configuration
 MAX_CACHE_SIZE = 1000
 _bio_summary_cache = OrderedDict()
@@ -157,10 +167,16 @@ async def summarize_bio(bio_text: str, prospect_name: str = "", prospect_title: 
         prospect_title: Optional prospect title for context
     
     Returns:
-        A single sentence unique fact (max 100 words), or empty string if validation fails
+        A single sentence unique fact (max 100 words)
+    
+    Raises:
+        BioValidationError: If bio text is too short or invalid
+        BioSummarizationError: If API call or summary generation fails
     """
     if not bio_text or len(bio_text.strip()) < 20:
-        return ""
+        raise BioValidationError(
+            f"Bio text too short for summarization. Minimum 20 characters required, got {len(bio_text.strip())}"
+        )
     
     truncated_bio = truncate_at_sentence_boundary(bio_text, max_chars=1000, search_range=200)
     
@@ -211,27 +227,30 @@ Bio text:
 Extract ONE compelling unique fact as a single sentence (15-30 words).
 Return ONLY the sentence, no explanation or preamble."""
 
+    print(f"Summarizing bio for {prospect_name}, length: {len(bio_text)}")
+    
     try:
-        print(f"Summarizing bio for {prospect_name}, length: {len(bio_text)}")
-        
         summary = await call_anthropic_text(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             model="claude-sonnet-4-20250514"
         )
-        
-        print(f"API returned summary: {summary}")
-        
-        # Validate summary
-        _, validated_summary = _validate_summary(summary)
-        
-        # Add to cache (even if validation failed, to avoid re-trying bad inputs)
-        _add_to_cache(cache_key, validated_summary)
-        
-        return validated_summary
-        
     except Exception as e:
-        print(f"Error summarizing bio: {e}")
+        error_msg = f"API call failed: {str(e)}"
+        print(f"Error during API call: {error_msg}")
         import traceback
         traceback.print_exc()
-        return ""
+        raise BioSummarizationError(error_msg) from e
+    
+    print(f"API returned summary: {summary}")
+    
+    is_valid, validated_summary = _validate_summary(summary)
+    
+    if not is_valid:
+        error_msg = "LLM output failed validation checks (empty, too short/long, or contained refusal/error patterns)"
+        print(f"Validation failed: {error_msg}")
+        raise BioSummarizationError(error_msg)
+    
+    _add_to_cache(cache_key, validated_summary)
+    
+    return validated_summary
