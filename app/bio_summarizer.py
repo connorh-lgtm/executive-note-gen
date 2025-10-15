@@ -2,7 +2,10 @@
 Bio summarization using Claude API
 """
 import re
+import hashlib
 from app.model_client import call_anthropic_text
+
+_bio_summary_cache = {}
 
 
 def truncate_at_sentence_boundary(text: str, max_chars: int = 1000, search_range: int = 200) -> str:
@@ -49,6 +52,16 @@ async def summarize_bio(bio_text: str, prospect_name: str = "", prospect_title: 
     if not bio_text or len(bio_text.strip()) < 20:
         return ""
     
+    truncated_bio = truncate_at_sentence_boundary(bio_text, max_chars=1000, search_range=200)
+    
+    cache_key = hashlib.sha256(truncated_bio.encode('utf-8')).hexdigest()
+    
+    if cache_key in _bio_summary_cache:
+        print(f"Cache hit for bio (hash: {cache_key[:8]}...)")
+        return _bio_summary_cache[cache_key]
+    
+    print(f"Cache miss for bio (hash: {cache_key[:8]}...), calling LLM")
+    
     system_prompt = """You are an expert at extracting the most interesting and relevant facts from executive bios.
 Your job is to read a LinkedIn bio and extract ONE compelling fact that would be useful for personalized outreach.
 
@@ -74,8 +87,6 @@ Output format: One sentence, 15-30 words, factual and specific."""
     if prospect_title:
         context += f"Title: {prospect_title}\n"
     
-    truncated_bio = truncate_at_sentence_boundary(bio_text, max_chars=1000, search_range=200)
-    
     user_prompt = f"""{context}
 Bio text:
 {truncated_bio}
@@ -100,6 +111,8 @@ Return ONLY the sentence, no explanation or preamble."""
         # Limit to reasonable length
         if len(summary) > 200:
             summary = summary[:200].rsplit(' ', 1)[0] + '...'
+        
+        _bio_summary_cache[cache_key] = summary
         
         return summary
         
