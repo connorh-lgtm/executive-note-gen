@@ -15,6 +15,11 @@ load_dotenv()
 
 from app.generator import generate_outreach_emails
 from app.bio_summarizer import summarize_bio
+from app.companies_data import (
+    get_all_companies, get_company, search_companies,
+    create_company, update_company, delete_company
+)
+from typing import List
 
 app = FastAPI(title="Executive Note Generator", version="1.0.0")
 
@@ -153,6 +158,88 @@ async def summarize_bio_endpoint(request: BioSummaryRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to summarize bio: {str(e)}")
+
+
+# ============================================================================
+# Company & Initiatives Management Endpoints
+# ============================================================================
+
+class CompanyCreate(BaseModel):
+    """Request model for creating a company"""
+    name: str = Field(..., min_length=1, max_length=200, description="Company name")
+    industry: Optional[str] = Field("", max_length=100, description="Industry/sector")
+    initiatives: Optional[List[str]] = Field(default=[], description="List of up to 3 initiatives")
+
+
+class CompanyUpdate(BaseModel):
+    """Request model for updating a company"""
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    industry: Optional[str] = Field(None, max_length=100)
+    initiatives: Optional[List[str]] = Field(None, description="List of up to 3 initiatives")
+
+
+@app.get("/api/companies")
+async def list_companies():
+    """Get all companies with their initiatives"""
+    companies = get_all_companies()
+    return {"companies": companies}
+
+
+@app.get("/api/companies/search")
+async def search_companies_endpoint(q: str):
+    """Search companies by name (autocomplete)"""
+    if len(q) < 2:
+        return {"companies": []}
+    results = search_companies(q)
+    return {"companies": results}
+
+
+@app.get("/api/companies/{company_id}")
+async def get_company_endpoint(company_id: str):
+    """Get company by ID with all details"""
+    company = get_company(company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return company
+
+
+@app.post("/api/companies", status_code=201)
+async def create_company_endpoint(company: CompanyCreate):
+    """Create a new company"""
+    try:
+        new_company = create_company(
+            name=company.name,
+            industry=company.industry or "",
+            initiatives=company.initiatives or []
+        )
+        return new_company
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.put("/api/companies/{company_id}")
+async def update_company_endpoint(company_id: str, company: CompanyUpdate):
+    """Update company details"""
+    try:
+        updated = update_company(
+            company_id=company_id,
+            name=company.name,
+            industry=company.industry,
+            initiatives=company.initiatives
+        )
+        if not updated:
+            raise HTTPException(status_code=404, detail="Company not found")
+        return updated
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/api/companies/{company_id}", status_code=204)
+async def delete_company_endpoint(company_id: str):
+    """Delete a company and all its initiatives"""
+    success = delete_company(company_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Company not found")
 
 
 if __name__ == "__main__":

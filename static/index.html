@@ -72,9 +72,17 @@
 <body class="bg-gray-50 min-h-screen">
     <!-- Header -->
     <div class="gradient-bg text-white py-12 mb-8">
-        <div class="container mx-auto px-4 text-center">
-            <h1 class="text-5xl font-bold mb-3">Ghost Note Generator</h1>
-            <p class="text-xl opacity-90 max-w-2xl mx-auto">Craft high-caliber outreach emails for enterprise executives with AI-powered precision</p>
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center mb-6">
+                <div></div>
+                <button onclick="openCompanyModal()" class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition font-medium">
+                    📊 My Companies
+                </button>
+            </div>
+            <div class="text-center">
+                <h1 class="text-5xl font-bold mb-3">Ghost Note Generator</h1>
+                <p class="text-xl opacity-90 max-w-2xl mx-auto">Craft high-caliber outreach emails for enterprise executives with AI-powered precision</p>
+            </div>
         </div>
     </div>
 
@@ -804,6 +812,282 @@
                 setTimeout(() => notification.remove(), 300);
             }, 3000);
         }
+
+        // ============================================================================
+        // Company Management Functions
+        // ============================================================================
+
+        function openCompanyModal() {
+            document.getElementById('companyModal').classList.remove('hidden');
+            loadCompanies();
+        }
+
+        function closeCompanyModal() {
+            document.getElementById('companyModal').classList.add('hidden');
+        }
+
+        async function loadCompanies() {
+            try {
+                const response = await fetch('/api/companies');
+                const data = await response.json();
+                const companies = data.companies;
+                
+                const listEl = document.getElementById('companiesList');
+                
+                if (companies.length === 0) {
+                    listEl.innerHTML = '<p class="text-gray-500 text-center py-8">No companies yet. Add one above!</p>';
+                    return;
+                }
+                
+                listEl.innerHTML = companies.map(company => `
+                    <div class="border rounded-lg p-4 hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="font-bold text-lg">${escapeHtml(company.name)}</h3>
+                                <p class="text-sm text-gray-600">${escapeHtml(company.industry || 'No industry')}</p>
+                            </div>
+                            <button onclick="deleteCompany('${company.id}')" 
+                                    class="text-red-500 hover:text-red-700 text-xl">
+                                🗑️
+                            </button>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-sm font-semibold text-gray-700">Key Initiatives:</p>
+                            ${company.initiatives.length > 0 ? company.initiatives.map((init, i) => `
+                                <p class="text-sm text-gray-600">• ${escapeHtml(init)}</p>
+                            `).join('') : '<p class="text-sm text-gray-400">No initiatives</p>'}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading companies:', error);
+                showNotification('Failed to load companies');
+            }
+        }
+
+        async function addCompany() {
+            const name = document.getElementById('newCompanyName').value.trim();
+            const industry = document.getElementById('newCompanyIndustry').value.trim();
+            const initiative1 = document.getElementById('newInitiative1').value.trim();
+            const initiative2 = document.getElementById('newInitiative2').value.trim();
+            const initiative3 = document.getElementById('newInitiative3').value.trim();
+            
+            if (!name) {
+                showNotification('Company name is required');
+                return;
+            }
+            
+            const initiatives = [initiative1, initiative2, initiative3].filter(i => i);
+            
+            try {
+                const response = await fetch('/api/companies', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, industry, initiatives })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail);
+                }
+                
+                // Clear form
+                document.getElementById('newCompanyName').value = '';
+                document.getElementById('newCompanyIndustry').value = '';
+                document.getElementById('newInitiative1').value = '';
+                document.getElementById('newInitiative2').value = '';
+                document.getElementById('newInitiative3').value = '';
+                
+                // Reload list
+                loadCompanies();
+                
+                showNotification('Company added successfully!');
+            } catch (error) {
+                console.error('Error adding company:', error);
+                showNotification('Failed to add company: ' + error.message);
+            }
+        }
+
+        async function deleteCompany(companyId) {
+            if (!confirm('Are you sure you want to delete this company?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/companies/${companyId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to delete');
+                }
+                
+                loadCompanies();
+                showNotification('Company deleted successfully');
+            } catch (error) {
+                console.error('Error deleting company:', error);
+                showNotification('Failed to delete company');
+            }
+        }
+
+        // Autocomplete for company field
+        let companySearchTimeout;
+
+        function setupCompanyAutocomplete() {
+            const companyInput = document.getElementById('prospectCompany');
+            if (!companyInput) return;
+            
+            const dropdown = document.createElement('div');
+            dropdown.id = 'companyDropdown';
+            dropdown.className = 'absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto';
+            companyInput.parentElement.style.position = 'relative';
+            companyInput.parentElement.appendChild(dropdown);
+            
+            companyInput.addEventListener('input', (e) => {
+                clearTimeout(companySearchTimeout);
+                const query = e.target.value.trim();
+                
+                if (query.length < 2) {
+                    dropdown.classList.add('hidden');
+                    return;
+                }
+                
+                companySearchTimeout = setTimeout(async () => {
+                    try {
+                        const response = await fetch(`/api/companies/search?q=${encodeURIComponent(query)}`);
+                        const data = await response.json();
+                        const companies = data.companies;
+                        
+                        if (companies.length === 0) {
+                            dropdown.classList.add('hidden');
+                            return;
+                        }
+                        
+                        dropdown.innerHTML = companies.map(c => `
+                            <div class="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0" 
+                                 onclick="selectCompany('${c.id}', '${escapeHtml(c.name).replace(/'/g, "\\'")}')">
+                                <div class="font-medium">${escapeHtml(c.name)}</div>
+                                <div class="text-xs text-gray-500">${escapeHtml(c.industry || 'No industry')}</div>
+                            </div>
+                        `).join('');
+                        
+                        dropdown.classList.remove('hidden');
+                    } catch (error) {
+                        console.error('Error searching companies:', error);
+                    }
+                }, 300);
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!companyInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        async function selectCompany(companyId, companyName) {
+            // Set company name
+            document.getElementById('prospectCompany').value = companyName;
+            document.getElementById('companyDropdown').classList.add('hidden');
+            
+            // Load initiatives
+            try {
+                const response = await fetch(`/api/companies/${companyId}`);
+                const company = await response.json();
+                
+                if (company.initiatives && company.initiatives.length > 0) {
+                    showInitiativeSelector(company.initiatives);
+                }
+            } catch (error) {
+                console.error('Error loading company initiatives:', error);
+            }
+        }
+
+        function showInitiativeSelector(initiatives) {
+            const initiativeInput = document.getElementById('businessInitiative');
+            
+            // Remove existing selector if present
+            const existingSelector = document.getElementById('initiativeSelector');
+            if (existingSelector) {
+                existingSelector.remove();
+            }
+            
+            // Create new selector
+            const selector = document.createElement('div');
+            selector.id = 'initiativeSelector';
+            selector.className = 'bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2';
+            
+            selector.innerHTML = `
+                <p class="text-sm font-semibold text-blue-800 mb-2">💡 Saved Initiatives:</p>
+                <div class="space-y-1">
+                    ${initiatives.map((init, i) => `
+                        <button type="button" 
+                                onclick="useInitiative('${escapeHtml(init).replace(/'/g, "\\'")}')"
+                                class="block w-full text-left text-sm bg-white hover:bg-blue-100 px-3 py-2 rounded border transition">
+                            ${escapeHtml(init)}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+            
+            initiativeInput.parentElement.appendChild(selector);
+        }
+
+        function useInitiative(initiative) {
+            document.getElementById('businessInitiative').value = initiative;
+            const selector = document.getElementById('initiativeSelector');
+            if (selector) {
+                selector.remove();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setupCompanyAutocomplete();
+        });
     </script>
+
+    <!-- Company Management Modal -->
+    <div id="companyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">My Target Companies</h2>
+                <button onclick="closeCompanyModal()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            </div>
+            
+            <!-- Add Company Form -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 class="font-semibold mb-3">Add New Company</h3>
+                <div class="space-y-3">
+                    <input type="text" id="newCompanyName" placeholder="Company Name *" 
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <input type="text" id="newCompanyIndustry" placeholder="Industry (optional)" 
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <input type="text" id="newInitiative1" placeholder="Initiative 1" 
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <input type="text" id="newInitiative2" placeholder="Initiative 2" 
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <input type="text" id="newInitiative3" placeholder="Initiative 3" 
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <button onclick="addCompany()" 
+                            class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition font-medium">
+                        Add Company
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Companies List -->
+            <div id="companiesList" class="space-y-4">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
 </body>
 </html>
