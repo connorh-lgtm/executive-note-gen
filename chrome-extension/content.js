@@ -237,7 +237,34 @@ async function extractProspectData() {
       }
     }
     
-    // PRIORITY: Look for "About" section in page text FIRST
+    // PRIORITY: Try to find About section directly in DOM first
+    if (!fullBio) {
+      console.log('Trying direct DOM About section extraction...');
+      
+      // Find all headings that say "About"
+      const allHeadings = document.querySelectorAll('h2, h3, div[class*="heading"], div[class*="title"]');
+      for (const heading of allHeadings) {
+        if (heading.textContent.trim().toLowerCase() === 'about') {
+          console.log('Found About heading in DOM');
+          // Get the next sibling or parent's next sibling that contains text
+          let contentElement = heading.nextElementSibling;
+          if (!contentElement && heading.parentElement) {
+            contentElement = heading.parentElement.nextElementSibling;
+          }
+          
+          if (contentElement) {
+            const text = contentElement.textContent.trim();
+            if (text.length > 50 && !text.includes('Relationship') && !text.includes('Experience')) {
+              fullBio = text.replace(/Show (more|less)/gi, '').trim();
+              console.log('Found bio via DOM traversal, length:', fullBio.length);
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    // Fallback: Look for "About" section in page text
     if (!fullBio) {
       console.log('Trying About section extraction from page text...');
       const bodyText = document.body.innerText;
@@ -276,32 +303,39 @@ async function extractProspectData() {
       
       if (aboutIndex >= 0) {
         // Extract lines after "About" until we hit another section
-        const stopWords = ['experience', 'education', 'licenses', 'skills', 'activity', 'recommendations', 'recent post', 'mutual connection', 'teamlink', 'relationship'];
+        const stopWords = ['experience', 'education', 'licenses', 'skills', 'activity', 'recommendations', 'recent post', 'mutual connection', 'teamlink'];
         let bioLines = [];
         
-        // Debug: show next 15 lines after About
+        // Debug: show next 30 lines after About
         console.log('Lines after About:');
-        for (let i = aboutIndex + 1; i < aboutIndex + 16 && i < lines.length; i++) {
+        for (let i = aboutIndex + 1; i < aboutIndex + 31 && i < lines.length; i++) {
           console.log(`  Line ${i}: "${lines[i]}"`);
         }
         
-        for (let i = aboutIndex + 1; i < lines.length && i < aboutIndex + 30; i++) {
+        for (let i = aboutIndex + 1; i < lines.length && i < aboutIndex + 40; i++) {
           const line = lines[i];
           const lineLower = line.toLowerCase();
           
-          // Stop at next section
-          if (stopWords.some(word => lineLower === word || lineLower.includes(word))) {
+          // Stop at next major section
+          if (stopWords.some(word => lineLower === word || lineLower.startsWith(word + ' '))) {
             console.log('Stopping at:', line);
             break;
           }
           
-          // Skip UI elements and short lines
+          // Skip common UI elements but NOT "Relationship" as a stop word
           if (line.includes('Message') || line.includes('Connect') || 
               line.includes('Save to') || line.includes('Send InMail') ||
               line.includes('Account has') || line.includes('intent') ||
               line.includes('View profile') || line.includes('See all') ||
+              line.includes('Get insights') || line.includes('BETA') ||
+              line.includes('Learn more') || line.includes('Enrich or push') ||
+              line.includes('Push to') || line.includes('FIND EMAIL') ||
+              line.includes('FIND PHONE') || line.includes('Powered by') ||
+              line.includes('Not added to') || line.includes('Email') === line ||
+              line.includes('Phone') === line || line.includes('CRM') === line ||
+              lineLower === 'relationship' ||
               line.length < 10) {
-            console.log('Skipping short/UI line:', line);
+            console.log('Skipping UI line:', line);
             continue;
           }
           
