@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.generator import generate_outreach_emails
-from app.bio_summarizer import summarize_bio
+from app.bio_summarizer import summarize_bio, get_cache_stats
 from app.companies_data import (
     get_all_companies, get_company, search_companies,
     create_company, update_company, delete_company
@@ -158,6 +158,14 @@ async def summarize_bio_endpoint(request: BioSummaryRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to summarize bio: {str(e)}")
+
+
+@app.get("/api/bio-cache-stats")
+async def bio_cache_stats():
+    """
+    Get bio summarization cache performance statistics
+    """
+    return get_cache_stats()
 
 
 # ============================================================================
