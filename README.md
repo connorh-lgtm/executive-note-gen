@@ -11,6 +11,12 @@ A production-ready web application that generates high-caliber executive outreac
   - Customer Value & Growth
   - Competitive Advantage
 
+- **Company Initiatives Management** ✨ NEW
+  - Store up to 10 target companies with 3 key initiatives each
+  - Autocomplete company selection in email form
+  - Auto-populate initiatives for faster email generation
+  - JSON-based storage for easy backup and portability
+
 - **Mega-Prompt v13 Engine**: Embedded prompt engineering framework with:
   - Board-level tone and structure
   - Case study library (Nubank, Goldman Sachs, Ramp, etc.)
@@ -52,6 +58,26 @@ python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Open browser to: **http://localhost:8000**
+
+## Using Company Initiatives
+
+### 1. Add Your Target Companies
+
+Click **"📊 My Companies"** in the header to open the company management modal.
+
+Add companies with their key initiatives:
+- Company name (required)
+- Industry (optional)
+- Up to 3 key initiatives
+
+### 2. Generate Emails with Saved Data
+
+When typing a company name in the email form:
+- Autocomplete will suggest saved companies
+- Select a company to auto-load its initiatives
+- Click any initiative to populate the form field
+
+This saves time and ensures consistency across your outreach!
 
 ## API Usage
 
