@@ -224,39 +224,46 @@ Study these examples carefully. Match their tone, length, structure, and natural
 Subject Line: [≤ 6 words, initiative/metric anchored]
 Email Body: [80–110 words, structured naturally]
 
-[CORE STRUCTURE]
-Greeting: "Hi {{First Name}},"
+[CORE STRUCTURE - FOLLOW THIS ORDER EXACTLY]
+You MUST follow this structure in order. Do not skip sections or reorder them.
 
-Hook (1-2 sentences):
-- Event/recognition/initiative OR
-- Company-level challenge/goal OR
-- Existing relationship reference (for exec alignment)
+1. Greeting: "Hi {{First Name}},"
 
-Business Case (2-3 sentences):
-- Frame the board-level tension or opportunity
-- Cite specific KPI, target, or initiative if available
-- Connect to their strategic priorities
+2. Hook (1-2 sentences):
+   - Event/recognition/initiative OR
+   - Company-level challenge/goal OR
+   - Existing relationship reference (for exec alignment)
 
-Devin Value (2-3 sentences):
-- Automates high-volume, low-complexity engineering work
-- 6–12x faster development cycles
-- Reduces tech debt, improves efficiency ratios
-- Frees developers for customer innovation
-- Position vs. typical outcomes ("while most target 2–3x, peers achieve 6–12x")
+3. Business Case (2-3 sentences):
+   - Frame the board-level tension or opportunity
+   - Cite specific KPI, target, or initiative if available
+   - Connect to their strategic priorities
 
-Social Proof (1-2 sentences):
-- ALWAYS include: "Devin, the AI software engineer, has rolled out in production at [Citi](https://www.americanbanker.com/news/citi-is-rolling-out-agentic-ai-to-its-40-000-developers) (American Banker: Citi Is Rolling Out Agentic AI To Its 40,000 Developers), [Goldman Sachs](https://www.cnbc.com/2025/07/11/goldman-sachs-autonomous-coder-pilot-marks-major-ai-milestone.html) (CNBC: Goldman Sachs is piloting its first autonomous coder in major AI milestone for Wall Street), and several of the largest financial services firms internationally. On average, banks see 6–12x efficiency gains on human engineering time with Devin."
-- OR rotate case studies: Nubank, Bilt, Gumroad, Ramp, Linktree, Crossmint
-- Use markdown link format: [text](url) for Citi and Goldman Sachs references
+4. Devin Value (2-3 sentences):
+   - Automates high-volume, low-complexity engineering work
+   - 6–12x faster development cycles
+   - Reduces tech debt, improves efficiency ratios
+   - Frees developers for customer innovation
+   - Position vs. typical outcomes ("while most target 2–3x, peers achieve 6–12x")
 
-Closing & CTA (1 sentence):
-- Crisp, specific, easy to act on
-- Match message type (cold: "open slots?", in-person: "save you a seat?", exec: "EAs coordinate?")
-- Optional human touch: ":)" sparingly
+5. Social Proof (1-2 sentences):
+   - MANDATORY: Include the FULL text: "Devin, the AI software engineer, has rolled out in production at [Citi](https://www.americanbanker.com/news/citi-is-rolling-out-agentic-ai-to-its-40-000-developers) (American Banker: Citi Is Rolling Out Agentic AI To Its 40,000 Developers), [Goldman Sachs](https://www.cnbc.com/2025/07/11/goldman-sachs-autonomous-coder-pilot-marks-major-ai-milestone.html) (CNBC: Goldman Sachs is piloting its first autonomous coder in major AI milestone for Wall Street), and several of the largest financial services firms internationally. On average, banks see 6–12x efficiency gains on human engineering time with Devin."
+   - MUST use exact markdown link format: [text](url) for Citi and Goldman Sachs
+   - This text is non-negotiable and must appear verbatim
 
-Optional Personal Note:
-- Only if natural and strengthens connection
-- Keep brief (1 sentence)
+6. Closing & CTA (1 sentence):
+   - Crisp, specific, easy to act on
+   - Match message type (cold: "open slots?", in-person: "save you a seat?", exec: "EAs coordinate?")
+   - Optional human touch: ":)" sparingly
+
+7. Signature: "Best," or "Cheers," + sender's first name
+
+8. Optional Personal Note (ONLY if natural):
+   - Only if natural and strengthens connection
+   - Keep brief (1 sentence)
+   - Goes AFTER signature
+
+CRITICAL: The structure order is non-negotiable. Hook → Business Case → Devin Value → Social Proof → CTA → Signature → Optional Personal Note.
 
 [CASE STUDY LIBRARY]
 Nubank: Capacity expansion without workforce creep (LatAm fintech scaling)
@@ -313,21 +320,43 @@ USER_PROMPT_TEMPLATE = """Generate 1 highly optimized executive outreach email f
 - Unique Fact: {unique_fact}
 - Business Initiative: {business_initiative}{meeting_purpose_context}
 
+**CRITICAL: Follow the CORE STRUCTURE exactly as specified:**
+
+1. **Greeting:** "Hi {{First Name}},"
+
+2. **Hook (1-2 sentences):** Reference the unique fact, event, recognition, or initiative
+
+3. **Business Case (2-3 sentences):** Frame the board-level tension/opportunity, connect to their strategic priorities
+
+4. **Devin Value (2-3 sentences):** 
+   - Automates high-volume engineering work
+   - 6-12x efficiency gains
+   - Frees developers for innovation
+   
+5. **Social Proof (1-2 sentences):** 
+   - MUST include: "Devin, the AI software engineer, has rolled out in production at [Citi](https://www.americanbanker.com/news/citi-is-rolling-out-agentic-ai-to-its-40-000-developers) (American Banker: Citi Is Rolling Out Agentic AI To Its 40,000 Developers), [Goldman Sachs](https://www.cnbc.com/2025/07/11/goldman-sachs-autonomous-coder-pilot-marks-major-ai-milestone.html) (CNBC: Goldman Sachs is piloting its first autonomous coder in major AI milestone for Wall Street), and several of the largest financial services firms internationally. On average, banks see 6-12x efficiency gains on human engineering time with Devin."
+   - Use exact markdown link format: [text](url)
+
+6. **Closing & CTA (1 sentence):** Message-type-appropriate call to action
+
+7. **Signature:** "Best," or "Cheers," followed by sender's first name
+
+8. **Optional Personal Note:** Only if natural (1 sentence max)
+
 **Output Requirements:**
 Return a valid JSON object with this exact structure:
 {{
   "subject": "Subject line here (≤6 words)",
-  "body": "Email body here (80-110 words)"
+  "body": "Complete email body following the structure above (80-110 words)"
 }}
 
-Ensure the email:
-- Uses the prospect's first name in greeting
-- Incorporates the unique fact and business initiative naturally
-- Includes Citi/Goldman validation OR uses the most relevant case study
-- Follows the 80-110 word constraint strictly
-- Has a crisp, message-type-appropriate CTA
-- Matches the tone and structure of the provided examples
-- Chooses the most compelling strategic angle for this specific prospect
+**Strict Requirements:**
+- Follow the structure order exactly: Hook → Business Case → Devin Value → Social Proof → CTA
+- Include the FULL Citi/Goldman social proof text with markdown links
+- Use prospect's first name in greeting
+- Keep body to 80-110 words (excluding greeting/signature)
+- Match the tone and flow of the provided examples
+- NO deviations from the structure
 
 This should be your absolute best work - the strongest possible message for this prospect.
 
