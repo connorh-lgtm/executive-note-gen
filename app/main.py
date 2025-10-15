@@ -14,7 +14,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.generator import generate_outreach_emails
-from app.bio_summarizer import summarize_bio, get_cache_stats
+from app.bio_summarizer import (
+    summarize_bio, get_cache_stats, 
+    BioValidationError, BioSummarizationError
+)
 from app.companies_data import (
     get_all_companies, get_company, search_companies,
     create_company, update_company, delete_company
@@ -143,7 +146,12 @@ async def submit_feedback(request: FeedbackRequest):
 @app.post("/api/summarize-bio")
 async def summarize_bio_endpoint(request: BioSummaryRequest):
     """
-    Summarize a LinkedIn bio into one compelling sentence
+    Summarize a LinkedIn bio into one compelling sentence.
+    
+    Returns:
+        200: Success with summary
+        400: Validation error (bio too short)
+        500: API or processing error
     """
     try:
         summary = await summarize_bio(
@@ -154,10 +162,32 @@ async def summarize_bio_endpoint(request: BioSummaryRequest):
         
         return {
             "summary": summary,
-            "status": "success" if summary else "no_summary"
+            "status": "success"
         }
+    except BioValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "validation_failed",
+                "message": str(e)
+            }
+        )
+    except BioSummarizationError as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "summarization_failed", 
+                "message": str(e)
+            }
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to summarize bio: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "unexpected_error",
+                "message": f"Unexpected error during bio summarization: {str(e)}"
+            }
+        )
 
 
 @app.get("/api/bio-cache-stats")
