@@ -108,9 +108,39 @@ Return ONLY the sentence, no explanation or preamble."""
         # Clean up any quotes or extra formatting
         summary = summary.strip().strip('"').strip("'").strip()
         
-        # Limit to reasonable length
-        if len(summary) > 200:
-            summary = summary[:200].rsplit(' ', 1)[0] + '...'
+        if not summary or not summary.strip():
+            print("Validation failed: Empty or whitespace-only response")
+            summary = ""
+        else:
+            refusal_patterns = [
+                "i cannot", "i'm unable", "i can't", "i am unable",
+                "i apologize", "i'm sorry", "i am sorry",
+                "as an ai", "as a language model",
+                "i don't have", "i do not have", "i'm not able"
+            ]
+            summary_lower = summary.lower()
+            if any(pattern in summary_lower for pattern in refusal_patterns):
+                print(f"Validation failed: Refusal message detected in response")
+                summary = ""
+            else:
+                word_count = len(summary.split())
+                if word_count < 5:
+                    print(f"Validation failed: Response too short ({word_count} words, minimum 5)")
+                    summary = ""
+                elif word_count > 40:
+                    print(f"Validation failed: Response too long ({word_count} words, maximum 40)")
+                    summary = ""
+                else:
+                    error_patterns = [
+                        "error occurred", "unable to extract", "could not find",
+                        "cannot provide", "not available", "no information",
+                        "insufficient information", "cannot determine"
+                    ]
+                    if any(pattern in summary_lower for pattern in error_patterns):
+                        print(f"Validation failed: Error pattern detected in response")
+                        summary = ""
+                    elif len(summary) > 200:
+                        summary = summary[:200].rsplit(' ', 1)[0] + '...'
         
         _bio_summary_cache[cache_key] = summary
         
