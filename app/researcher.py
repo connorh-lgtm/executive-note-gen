@@ -22,6 +22,8 @@ def get_perplexity_client():
     if not api_key:
         raise ValueError("PERPLEXITY_API_KEY not set in environment variables")
     
+    # Perplexity uses OpenAI SDK with custom base URL
+    # Note: Must use minimal parameters for compatibility
     return AsyncOpenAI(
         api_key=api_key,
         base_url="https://api.perplexity.ai"
@@ -218,7 +220,7 @@ If you cannot find substantial information, say so clearly rather than making ge
         client = get_perplexity_client()
         
         response = await client.chat.completions.create(
-            model="llama-3.1-sonar-small-128k-online",  # Has web search
+            model="sonar-pro",  # Perplexity model with web search
             messages=[
                 {
                     "role": "system",
