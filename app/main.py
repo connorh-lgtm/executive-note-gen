@@ -199,6 +199,79 @@ async def bio_cache_stats():
 
 
 # ============================================================================
+# Prospect Research Endpoints
+# ============================================================================
+
+from app.researcher import research_prospect, get_research_cache_stats
+
+
+class ResearchRequest(BaseModel):
+    """Request model for prospect research"""
+    name: str = Field(..., min_length=1, description="Prospect's full name")
+    title: str = Field("", description="Job title")
+    company: str = Field(..., min_length=1, description="Company name")
+    linkedin_url: Optional[str] = Field(None, description="LinkedIn profile URL")
+
+
+@app.post("/api/research-prospect")
+async def research_prospect_endpoint(request: ResearchRequest):
+    """
+    Research a prospect using Perplexity API with web search
+    
+    Finds compelling facts about the prospect including:
+    - Blog posts and articles about AI/technology
+    - Speaking engagements and presentations
+    - Awards and recognition
+    - Company initiatives they've led
+    - Media quotes and interviews
+    
+    Results are cached for 7 days to minimize API costs.
+    """
+    try:
+        results = await research_prospect(
+            name=request.name,
+            title=request.title,
+            company=request.company,
+            linkedin_url=request.linkedin_url
+        )
+        
+        return {
+            "success": True,
+            "data": results
+        }
+        
+    except ValueError as e:
+        # API key not configured
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "configuration_error",
+                "message": str(e)
+            }
+        )
+    except Exception as e:
+        print(f"Error in research endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "research_failed",
+                "message": f"Failed to research prospect: {str(e)}"
+            }
+        )
+
+
+@app.get("/api/research-cache-stats")
+async def research_cache_stats():
+    """
+    Get prospect research cache performance statistics
+    """
+    return get_research_cache_stats()
+
+
+# ============================================================================
 # Company & Initiatives Management Endpoints
 # ============================================================================
 
