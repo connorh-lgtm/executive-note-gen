@@ -3,6 +3,79 @@ LinkedIn profile enrichment using Perplexity API
 """
 import os
 import openai
+from app.enrichment_cache import get_cached_enrichment, cache_enrichment
+
+
+def calculate_confidence(result: dict, prospect_name: str, prospect_company: str) -> int:
+    """
+    Calculate confidence score for enrichment results (0-100)
+    
+    Higher score = more confident the data is about the correct person
+    """
+    confidence = 100
+    
+    # Extract first and last name
+    name_parts = prospect_name.split()
+    first_name = name_parts[0].lower() if name_parts else ""
+    last_name = name_parts[-1].lower() if len(name_parts) > 1 else ""
+    
+    unique_fact = result.get('unique_fact', '').lower()
+    business_init = result.get('business_initiative', '').lower()
+    linkedin_insight = result.get('linkedin_insight', '').lower()
+    
+    # Check if name appears in results
+    name_found = False
+    if first_name and first_name in unique_fact:
+        name_found = True
+    if last_name and last_name in unique_fact:
+        name_found = True
+    if prospect_name.lower() in unique_fact:
+        name_found = True
+    
+    if not name_found:
+        confidence -= 30
+    
+    # Check if company appears in results
+    if prospect_company:
+        company_found = (
+            prospect_company.lower() in unique_fact or
+            prospect_company.lower() in business_init or
+            prospect_company.lower() in linkedin_insight
+        )
+        if not company_found:
+            confidence -= 20
+    
+    # Check for generic/fallback phrases (indicates low quality)
+    generic_phrases = [
+        'experienced professional',
+        'leader in their field',
+        'driving innovation',
+        'digital transformation',
+        'operational excellence',
+        'could not automatically enrich'
+    ]
+    
+    for phrase in generic_phrases:
+        if phrase in unique_fact or phrase in business_init:
+            confidence -= 40
+            break
+    
+    # Check for specific details (good signs)
+    specific_indicators = [
+        'award', 'recognition', 'named', 'finalist', 'winner',
+        'led', 'launched', 'built', 'grew', 'scaled',
+        'million', 'billion', '%', 'x',
+        'published', 'spoke', 'presented'
+    ]
+    
+    has_specific_details = any(indicator in unique_fact for indicator in specific_indicators)
+    if has_specific_details:
+        confidence += 10
+    
+    # Ensure confidence is between 0 and 100
+    confidence = max(0, min(100, confidence))
+    
+    return confidence
 
 
 async def enrich_linkedin_profile(
@@ -24,9 +97,17 @@ async def enrich_linkedin_profile(
         {
             "unique_fact": "...",
             "business_initiative": "...",
-            "linkedin_insight": "..."
+            "linkedin_insight": "...",
+            "confidence": 0-100,
+            "needs_verification": bool
         }
     """
+    # Check cache first
+    cached_result = get_cached_enrichment(linkedin_url, prospect_name)
+    if cached_result:
+        cached_result['from_cache'] = True
+        return cached_result
+    
     api_key = os.getenv("PERPLEXITY_API_KEY")
     if not api_key:
         raise ValueError("PERPLEXITY_API_KEY not configured. Add it to your .env file.")
@@ -112,6 +193,14 @@ Be specific and use recent information. If you can't find something specific abo
         if "linkedin_insight" not in result:
             result["linkedin_insight"] = "Experienced professional in their industry"
         
+        # Calculate confidence score
+        confidence = calculate_confidence(result, prospect_name, prospect_company)
+        result["confidence"] = confidence
+        result["needs_verification"] = confidence < 70
+        
+        # Cache the result
+        cache_enrichment(linkedin_url, prospect_name, result)
+        
         return result
         
     except Exception as e:
@@ -119,5 +208,7 @@ Be specific and use recent information. If you can't find something specific abo
         return {
             "unique_fact": f"{prospect_name} is an experienced {prospect_title or 'professional'} at {prospect_company or 'their company'}",
             "business_initiative": "Driving digital transformation and operational excellence",
-            "linkedin_insight": f"Could not automatically enrich profile: {str(e)}"
+            "linkedin_insight": f"Could not automatically enrich profile: {str(e)}",
+            "confidence": 0,
+            "needs_verification": True
         }

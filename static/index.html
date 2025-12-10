@@ -341,6 +341,24 @@
                     .then(enrichData => {
                         console.log('✅ Perplexity enrichment successful:', enrichData);
                         
+                        // Check confidence score
+                        const confidence = enrichData.confidence || 100;
+                        const needsVerification = enrichData.needs_verification || false;
+                        const fromCache = enrichData.from_cache || false;
+                        
+                        // Show confidence indicator
+                        let confidenceColor = 'green';
+                        let confidenceText = 'High confidence';
+                        if (confidence < 70) {
+                            confidenceColor = 'orange';
+                            confidenceText = 'Medium confidence - please verify';
+                        }
+                        if (confidence < 40) {
+                            confidenceColor = 'red';
+                            confidenceText = 'Low confidence - please verify carefully';
+                        }
+                        
+                        // Auto-fill fields
                         if (enrichData.unique_fact) {
                             uniqueFactField.value = enrichData.unique_fact;
                             uniqueFactField.placeholder = 'e.g., Recently named CIO of the Year finalist...';
@@ -348,6 +366,31 @@
                         if (enrichData.business_initiative) {
                             businessInitField.value = enrichData.business_initiative;
                             businessInitField.placeholder = 'e.g., Leading digital transformation...';
+                        }
+                        
+                        // Show confidence banner if needs verification
+                        if (needsVerification) {
+                            const banner = document.createElement('div');
+                            banner.className = `mt-2 p-3 bg-${confidenceColor === 'red' ? 'red' : 'yellow'}-50 border border-${confidenceColor === 'red' ? 'red' : 'yellow'}-200 rounded-lg`;
+                            banner.innerHTML = `
+                                <div class="flex items-start">
+                                    <svg class="w-5 h-5 text-${confidenceColor === 'red' ? 'red' : 'yellow'}-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-${confidenceColor === 'red' ? 'red' : 'yellow'}-800">${confidenceText}</p>
+                                        <p class="text-xs text-${confidenceColor === 'red' ? 'red' : 'yellow'}-700 mt-1">Confidence: ${confidence}% ${fromCache ? '(from cache)' : ''}</p>
+                                        <p class="text-xs text-${confidenceColor === 'red' ? 'red' : 'yellow'}-700 mt-1">Please review the enriched data above and edit if needed before generating.</p>
+                                    </div>
+                                </div>
+                            `;
+                            businessInitField.parentElement.appendChild(banner);
+                        } else if (fromCache) {
+                            // Show cache indicator for high-confidence cached results
+                            const cacheIndicator = document.createElement('p');
+                            cacheIndicator.className = 'text-xs text-gray-500 mt-1';
+                            cacheIndicator.textContent = `✓ Loaded from cache (${confidence}% confidence)`;
+                            businessInitField.parentElement.appendChild(cacheIndicator);
                         }
                     })
                     .catch(error => {
