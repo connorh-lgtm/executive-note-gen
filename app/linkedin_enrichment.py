@@ -2,7 +2,6 @@
 LinkedIn profile enrichment using Perplexity API
 """
 import os
-from typing import Optional
 import openai
 
 

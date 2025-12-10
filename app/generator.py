@@ -1,7 +1,6 @@
 """
 Core generation logic for executive outreach emails
 """
-from typing import Optional
 from app.prompts_v2 import build_prompt
 from app.model_client import generate_with_model
 

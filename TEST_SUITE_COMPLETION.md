@@ -42,7 +42,7 @@ The existing test suite was importing from deprecated `app.prompts` (v13) instea
 - ✅ Uses `fastapi.testclient.TestClient`
 
 ### 4. **Cleaned Up Codebase**
-- ✅ Archived old `prompts.py` → `prompts_v13_archived.py`
+- ✅ Removed old `prompts.py` (v13) - now using `prompts_v2.py` (v14)
 - ✅ Removed technical debt from deprecated code
 
 ### 5. **Documentation**
