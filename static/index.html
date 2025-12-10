@@ -544,6 +544,9 @@
         });
 
         function displayEmail(result) {
+            // Store result globally for feedback system
+            window.currentResult = result;
+            
             emptyState.classList.add('hidden');
             emailContainer.classList.remove('hidden');
             document.getElementById('newEmailBtn').classList.remove('hidden');

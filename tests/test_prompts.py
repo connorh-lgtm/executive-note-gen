@@ -20,6 +20,7 @@ def test_build_prompt_cold_outreach():
     # Verify system prompt contains key elements
     assert "Fortune 50 EVP" in system_prompt
     assert "John Smith" in system_prompt
+    assert "First Name" in system_prompt or "Greeting" in system_prompt
     assert "Devin" in system_prompt
     assert "80–110 words" in system_prompt or "80-110 words" in system_prompt
     assert "Cold Outreach" in system_prompt or "cold_outreach" in system_prompt.lower()
@@ -94,7 +95,7 @@ def test_build_prompt_first_name_extraction():
         business_initiative="Test"
     )
     
-    assert "First Name" in system_prompt or "Greeting" in system_prompt
+    assert "John" in system_prompt
 
 
 def test_get_message_type_context_cold_outreach():
