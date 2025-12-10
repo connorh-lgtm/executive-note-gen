@@ -349,6 +349,7 @@ Return ONLY valid JSON. Do not include markdown code fences or any other text.
 
 
 from app.sender_profiles import get_sender_context
+from app.account_knowledge import format_account_context_for_prompt
 
 
 def build_prompt(
@@ -384,6 +385,11 @@ def build_prompt(
     
     # Get sender profile context
     sender_context = get_sender_context(manager_name)
+    
+    # Get account knowledge context
+    account_context = format_account_context_for_prompt(prospect_company, prospect_name)
+    if account_context:
+        sender_context += f"\n\n[ACCOUNT KNOWLEDGE]\n{account_context}\n\nUse this context to make the email more relevant and personalized. Reference specific people, initiatives, or recent activities when natural."
     
     system_prompt = MEGA_PROMPT_SYSTEM.format(
         manager_name=manager_name,
