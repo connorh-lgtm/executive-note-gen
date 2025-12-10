@@ -96,50 +96,73 @@ Sandeep
 
 EXECUTIVE_ALIGNMENT_EXAMPLES = """
 EXAMPLE 1:
-Hi Eric,
+Hi Lakshmi,
 
-Congrats on being recognized on Fast Company's "World's Most Innovative Companies" list -- great to see your growth and success! I'm founding president @ Cognition (makers of Devin & recently acquired Windsurf). 
+We've been working with Eric, Kaus, and the architect team to further evaluate our software agent, Devin. I know you weren't able to join the onsite in Chicago recently, so I wanted to find time to connect and discuss how we can best support your team. I'm Sandeep, a VP at Cognition.
 
-We have met with several directors and understand there are legacy migrations.. This prevents work on products like your forward thinking projects.
+The architect team is particularly interested in Devin due to its ability to accelerate longer, legacy-focused initiatives such as COBOL migrations and security vulnerability remediation. Across the organizations we're working with, we've seen Devin speed up projects by 6-12x, and we'd love to explore where we can provide similar value for your team. (https://devin.ai/customers/itau)
 
-Devin, the AI software engineer, has rolled out in production at Citi (American Banker: Citi Is Rolling Out Agentic AI To Its 40,000 Developers), On average, banks see 6-12x efficiency gains on human engineering time with Devin. Curious if you have spoken to any of your previous colleagues at Citi about our success there?
+Would it be possible to coordinate with your EA to find time to connect in the coming weeks?
 
-BMO is the only big bank in North America that we aren't engaged with in some capacity. I would like to change this :)
+Best,
+Sandeep
 
-Can we have our EAs coordinate time for a quick Zoom call to discuss this further?
-
-Cheers,
-Russell
+Separate from BMO, I saw your involvement with Hopeworks – it's great to see your focus on mentoring at-risk youth. This Holiday season, I'd love to get info from you to make a donation to the cause.
 
 EXAMPLE 2:
-Hi Shamus,
+Hi Mariusz,
 
-Congrats on being a CIO of the Year Finalist. It's great to see your forward-thinking leadership and GenAI adoption across the org, highlighted by projects like ChatMFC. I'm founding president @ Cognition (makers of Devin & recently acquired Windsurf). 
+We've been working with Eric, Kaus, and the architect team to further evaluate our software agent, Devin. Since you weren't able to join the recent onsite in Chicago, I wanted to connect and discuss how we can best support your team. I'm Sandeep, a VP at Cognition.
 
-I understand you have 70+ use cases of GenAI prioritized for deployment by the end of 2025. It looks like you are targeting a 3x return on these initiatives, and thought it would make sense to show how we are helping similar orgs achieve 6-12x improvements. 
+The architect team is particularly interested in Devin's ability to accelerate legacy-focused initiatives such as COBOL migrations and security vulnerability remediation. Across the organizations we support, Devin has delivered 6-12x acceleration on similar projects, and we'd love to explore how we can bring that value to your team. (https://devin.ai/customers/itau)
 
-Devin, the AI software engineer, has rolled out in production at Citi (American Banker: Citi Is Rolling Out Agentic AI To Its 40,000 Developers), Goldman Sachs (CNBC: Goldman Sachs is piloting its first autonomous coder in major AI milestone for Wall Street), and several of the largest financial services firms internationally. On average, banks see 6-12x efficiency gains on human engineering time with Devin.
+You've consistently led the market with first-to-launch features, such as automated bill payments (QuickPay). Agents like Devin represent a new frontier in how businesses build software -- enabling teams to deliver the next "Lumi" and bring new capabilities to market even faster.
 
-Manulife is on a short list of Insurance providers in North America that we aren't engaged with in some capacity. I would like to change this :)
+Could we coordinate with your EA to meet in person the week of January 13th? Our team will be in Toronto, and it would be great to walk you through our recent work and get your perspective.
 
-I would love the chance to meet in-person the next time I'm in the Toronto area. For now can we have our EAs coordinate time for a quick Zoom call to discuss this further?
+Best,
+Sandeep
 
-Cheers,
-Russell
+I think it would also be great to schedule a Hackathon similar to what you did with BMO's InnoV8 Hackathon to be able to have folks test what they can create with tools like Windsurf & Devin.
 
 EXAMPLE 3:
-Hi Alexis,
+Hi Tamekia,
 
-It's been a bit since we last caught up - hope you are doing well! 
+We've been working with Eric, Kaus, and the architect team to further evaluate our software agent, Devin. Since you weren't able to join the recent onsite in Chicago, I wanted to connect and discuss how we can best support your team. I'm Sandeep, a VP at Cognition.
 
-The Datadog team has recently started looking into Devin, our async agent, that is being used by organizations like Citi, Goldman, and Ramp and I wanted to keep you in the loop. 
+I understand you were a key driver behind BMO's successful integration of more than 330 systems during the Bank of the West merger -- an initiative that earned a Celent Model Bank Award. I'm sure you also saw firsthand the challenges of toil, legacy technology, and brownfield work.
 
-We are working to align on a pilot with Simon's team — with Devin connecting workflows across Jira/Slack and handling time-intensive migrations. This week we're scoping a 1,000-endpoint migration to determine the best way Devin can accelerate and streamline the work.
+In working with other banks (including Citi, Goldman, Itaú, and others), we've seen Devin significantly accelerate this type of legacy work, enabling teams to redirect time and resources toward higher-impact initiatives like innovation in banking technology.
 
-A lot has happened in the last few months (Cognition merger, recent raise, updated roadmap) – Can 
-we find some time to catch up and talk about how we are seeing Devin impact similar orgs and share what our strategy looks like for Datadog. 
+The architect team is particularly interested in Devin's ability to support longer-term legacy projects (such as COBOL migration) as well as security vulnerability remediation.
 
--Sandeep
+Would it be possible to coordinate with your EA to find a time to connect in the coming weeks?
+
+EXAMPLE 4:
+"The organizations that succeed won't just govern data — they'll leverage it as a catalyst in their AI journey for innovation, growth, and trust,"
+
+Hi Prasad - came across your quote and it resonated, especially with what we have been working on with the architecture team at BMO.
+
+I'm a Director here at Cognition and we have seen success working on this idea with companies like Citi, Goldman, Itau and more. Our product Devin is a software agent that is uniquely positioned to fit the enterprise standards of a large bank, while also accelerating brownfield projects 6 to 12x. (https://devin.ai/customers/itau)
+
+Would like to work with your EA to find time to learn more about your perspective and share what we have been building with the team. We have an office in SF and find ourselves out there for work quite a bit - happy to try to coordinate in-person later in Jan.
+
+Best,
+Jake
+
+EXAMPLE 5:
+Hi Sam,
+
+We've been working with Eric, Kaus, and the architect team to further evaluate our software agent, Devin. Since you weren't able to join the recent onsite in Chicago, I wanted to connect and discuss how we can best support your team. I'm Jake, a Regional Director at Cognition.
+
+Saw you were an avid runner and hiker! That's awesome - I try to get outside as much as my schedule allows to run, bike, or hike. I even brought my rock climbing shoes on a recent work trip 🙂
+
+Reason for my note is I saw your focus on intelligent, modular solutions in banking tech. Often when working with similar banks (Citi, Goldman, Itau) it is toil and legacy systems that slow down this goal. Our software agent platform Devin is helping organizations accelerate brownfield projects by 6 to 12x. This means helping with tasks like COBOL migrations, monolith to microservice, etc. to free up resources for feature development.
+
+Can we find some time in the coming weeks to connect? My team and I will most likely be in the Toronto area the week of 1/13 if you had time to grab coffee.
+
+Best,
+Jake
 """
 
 

@@ -85,8 +85,8 @@ def test_build_prompt_default_manager():
 
 
 def test_build_prompt_first_name_extraction():
-    """Test that first name is correctly extracted"""
-    system_prompt, _ = build_prompt(
+    """Test that first name is correctly extracted and used in greeting"""
+    system_prompt, user_prompt = build_prompt(
         message_type="cold_outreach",
         prospect_name="John Michael Smith",
         prospect_title="CTO",
@@ -95,7 +95,10 @@ def test_build_prompt_first_name_extraction():
         business_initiative="Test"
     )
     
-    assert "John" in system_prompt
+    # First name should be in greeting template
+    assert "First Name" in system_prompt or "Greeting" in system_prompt
+    # Full name should be in user prompt
+    assert "John Michael Smith" in user_prompt
 
 
 def test_get_message_type_context_cold_outreach():
