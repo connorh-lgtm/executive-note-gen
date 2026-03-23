@@ -116,8 +116,10 @@ def get_account_context(company_name: str) -> dict:
     if company_key in ACCOUNT_KNOWLEDGE:
         return ACCOUNT_KNOWLEDGE[company_key]
     
-    # Try partial match
+    # Try partial match (skip TEMPLATE entry)
     for key in ACCOUNT_KNOWLEDGE.keys():
+        if key == "TEMPLATE":
+            continue
         if company_key in key or key in company_key:
             return ACCOUNT_KNOWLEDGE[key]
     

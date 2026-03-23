@@ -187,8 +187,8 @@ async def submit_feedback(request: FeedbackRequest):
         feedback_dir = os.path.join(os.path.dirname(__file__), "..", "feedback")
         os.makedirs(feedback_dir, exist_ok=True)
         
-        # Create feedback file path with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Create feedback file path with timestamp (include microseconds to avoid collisions)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         feedback_file = os.path.join(feedback_dir, f"feedback_{timestamp}.json")
         
         # Save feedback to file

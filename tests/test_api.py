@@ -137,7 +137,7 @@ def test_feedback_endpoint_missing_fields():
     assert response.status_code == 422
 
 
-@patch('app.main.enrich_profile', new_callable=AsyncMock)
+@patch('app.main.enrich_linkedin_profile', new_callable=AsyncMock)
 def test_enrich_endpoint_success(mock_enrich):
     """Test LinkedIn enrichment endpoint"""
     mock_enrich.return_value = {

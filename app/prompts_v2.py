@@ -42,7 +42,7 @@ Expense discipline (<45% by 2027) is a board mandate few global insurers set so 
 
 Devin, the AI software engineer, (async cloud agent) helps technology teams like yours achieve, on average, 6 - 12x efficiency gains by automating high-volume engineering tasks. Already in production at Citi (American Banker: Citi Is Rolling Out Agentic AI To Its 40,000 Developers), Goldman Sachs (CNBC: Goldman Sachs is piloting its first autonomous coder in major AI milestone for Wall Street), and several of the largest financial services firms internationally, Devin accelerates key projects, while freeing talent to focus on customer innovation.
 
-I'd love to share some of the use-cases I believe would be 
+I'd love to share some of the use-cases I believe would be most relevant to your team.
 
 Do you have any open slots later this week or early next week to connect? 
 
