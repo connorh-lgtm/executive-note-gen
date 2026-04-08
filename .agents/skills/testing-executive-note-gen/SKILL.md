@@ -1,90 +1,113 @@
-# Testing Executive Note Gen
+# Testing Executive Note Generator
+
+How to test the executive-note-gen application locally.
+
+## Prerequisites
+
+- Python 3.9+ with dependencies installed (`pip install -r requirements.txt`)
+- Optional: `ANTHROPIC_API_KEY` environment variable for real LLM generation
 
 ## Devin Secrets Needed
-- `ANTHROPIC_API_KEY` — required for full email generation testing (UI → API → Anthropic → response). Without it, only the data layer and unit tests can be verified.
 
-## Running the Test Suite
+- `ANTHROPIC_API_KEY` — Required for real end-to-end LLM generation testing. Without it, you can still test the frontend UI by injecting mock data.
+
+## Running the App
+
+```bash
+cd /home/ubuntu/repos/executive-note-gen
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Health check: `curl http://localhost:8000/health`
+
+The app serves at `http://localhost:8000` with the frontend at the root path.
+
+## Running Tests
 
 ```bash
 cd /home/ubuntu/repos/executive-note-gen
 python -m pytest tests/ -v
 ```
 
-Expected: 27/28 pass. `test_enrich_endpoint_success` may fail — this is a pre-existing issue unrelated to most changes.
+All tests use mocked LLM calls and do not require an API key.
 
-## Testing the Account Knowledge Markdown Parser
+## Testing the Frontend UI Without an API Key
 
-The account knowledge system reads `.md` files from `accounts/` and parses them into dicts. To verify parsing:
-
-```python
-import sys
-sys.path.insert(0, '.')
-from app.account_knowledge import _parse_account_markdown
-bmo = _parse_account_markdown('accounts/BMO.md')
-# Check: bmo["company_name"], bmo["industry"], bmo["situation"], etc.
-```
-
-Key fields to validate: `company_name`, `industry`, `status`, `situation` (focus, challenges, recent_activity), `team_contacts`, `key_initiatives`, `positioning` (focus, differentiators, competitive), `contact_notes`.
-
-## Testing Cache Invalidation
-
-The cache uses a `None` sentinel (not `{}`) to distinguish "never loaded" from "loaded but empty". To test:
-
-```python
-import app.account_knowledge as ak
-# Reset cache
-ak._cached_accounts = None
-ak._cached_file_count = 0
-ak._cache_load_time = 0.0
-ak.ACCOUNTS_DIR = '/path/to/temp/dir'
-
-# Call _get_accounts() twice and verify _cache_load_time is stable
-```
-
-Things to verify:
-- Empty directory: cache is set after first call, not rescanned on second
-- Deleted file: removing a `.md` file triggers reload (account disappears)
-- Malformed file: an empty/broken `.md` doesn't cause cache thrashing (uses `_cached_file_count` to track files found on disk vs successfully parsed)
-
-## Testing the Model Client
-
-`generate_with_model` is **async** — must use `asyncio.run()` or `await` when testing:
+If no `ANTHROPIC_API_KEY` is available, you can test the frontend by injecting mock data via Playwright CDP:
 
 ```python
 import asyncio
-from unittest.mock import patch, AsyncMock
+from playwright.async_api import async_playwright
 
-async def test():
-    with patch('app.model_client.call_anthropic', new_callable=AsyncMock) as mock:
-        mock.return_value = '{"subject": "Test", "body": "Hello"}'
-        from app.model_client import generate_with_model
-        result = await generate_with_model("System", "User", provider="openai")
-        assert mock.called  # Routes to Anthropic regardless of provider param
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.connect_over_cdp('http://localhost:29229')
+        page = browser.contexts[0].pages[0]
+        await page.goto('http://localhost:8000')
+        await page.wait_for_load_state('networkidle')
+        
+        result = await page.evaluate("""() => {
+            const mockResult = {
+                templates: [
+                    { angle: "Strategy & Digital Leadership", subject: "Test Subject 1", body: "Test body 1" },
+                    { angle: "Technology Modernization", subject: "Test Subject 2", body: "Test body 2" },
+                    { angle: "Financial Efficiency", subject: "Test Subject 3", body: "Test body 3" },
+                    { angle: "Customer Value & Growth", subject: "Test Subject 4", body: "Test body 4" },
+                    { angle: "Competitive Advantage", subject: "Test Subject 5", body: "Test body 5" }
+                ],
+                metadata: { message_type: "cold_outreach", prospect_name: "Test", prospect_company: "TestCo", manager_name: "Manager", model_provider: "anthropic" }
+            };
+            displayEmail(mockResult);
+            const tabs = document.querySelectorAll('#templateTabs button');
+            return { tabCount: tabs.length };
+        }""")
+        print(f"Tabs rendered: {result['tabCount']}")
 
-asyncio.run(test())
+asyncio.run(main())
 ```
 
-`call_openai` and `call_perplexity` were removed from `model_client.py`. The Perplexity client in `linkedin_enrichment.py` is separate and still exists.
+This calls `displayEmail()` directly to render the tabbed UI with mock data.
 
-## Testing the Full UI Flow
+## Testing Rate Limiting
 
-Requires `ANTHROPIC_API_KEY` set in environment. Start the server:
+Restart the server with a low rate limit to test quickly:
 
 ```bash
-uvicorn app.main:app --reload --port 8000
+GENERATE_RATE_LIMIT="2/minute" python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Then open `http://localhost:8000` in browser. Fill in the form with a known company (e.g., "BMO") and a known contact (e.g., "Lakshmi") to verify account knowledge is injected into the generated email.
-
-## Public API Verification
-
-```python
-from app.account_knowledge import format_account_context_for_prompt
-output = format_account_context_for_prompt("BMO", "Lakshmi")
-# Should contain: "COMPANY CONTEXT (BMO):", "CONTACT CONTEXT (Lakshmi):", "Title: SVP Engineering"
+Then send rapid requests:
+```bash
+# These will return 400 (no API key) but consume rate limit slots
+curl -X POST http://localhost:8000/api/generate -H "Content-Type: application/json" \
+  -d '{"prospect_name":"Test","prospect_title":"CTO","prospect_company":"Acme","unique_fact":"Award","business_initiative":"AI","message_type":"cold_outreach"}'
+# Repeat until you get HTTP 429
 ```
 
-## Notes
-- Bullet parsing uses `removeprefix('- ')` (not `lstrip('- ')`) to avoid stripping leading dashes from values like `"-20% cost reduction"`
-- Account files live in `accounts/` — changes are auto-detected via mtime checking (no restart needed)
-- `TEMPLATE.md` is excluded from parsing
+Rate limit env vars: `GENERATE_RATE_LIMIT` (default 10/minute), `ENRICH_RATE_LIMIT` (default 20/minute), `FEEDBACK_RATE_LIMIT` (default 30/minute).
+
+## Form Field IDs
+
+The HTML form fields have these IDs (useful for Playwright automation):
+- `prospect_name` — Prospect name input
+- `message_type` — Message type select dropdown (values: `cold_outreach`, `in_person_ask`, `executive_alignment`)
+- `prospect_title` — Title input
+- `prospect_company` — Company input
+- `unique_fact` — Unique fact textarea
+- `business_initiative` — Business initiative textarea
+- `manager_name` — Sender name input (optional)
+- `meeting_purpose` — Meeting purpose textarea (shown for in-person ask type)
+
+## Key Frontend Functions
+
+- `displayEmail(result)` — Renders the tabbed UI from a result object with `templates` array
+- `showTemplate(index)` — Switches to a specific template tab
+- `copyEmail()` — Copies the currently visible template to clipboard
+- `saveToHistory(result)` — Saves result to localStorage
+- `loadHistoryItem(index)` — Loads a history item and displays it
+
+## Known Issues
+
+- Clipboard read via Playwright may hang due to browser permission prompts. The copy button visual feedback (checkmark icon) can be used as confirmation instead.
+- Clicking a history item re-saves it, potentially creating duplicate entries in the sidebar.
+- Old localStorage history entries (pre-templates format with top-level `subject`/`body`) will not load correctly in the new tabbed UI. Consider clearing localStorage if testing after upgrading.
