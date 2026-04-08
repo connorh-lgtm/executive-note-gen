@@ -9,8 +9,8 @@ import time
 
 ACCOUNTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'accounts')
 
-# Module-level cache
-_cached_accounts: dict = {}
+# Module-level cache (None = never loaded, {} = loaded but empty)
+_cached_accounts: dict | None = None
 _cache_load_time: float = 0.0
 
 
@@ -163,13 +163,18 @@ def _get_accounts() -> dict:
     if not os.path.isdir(accounts_dir):
         return {}
 
-    # Check if any file is newer than last load
-    needs_reload = not _cached_accounts
+    # Check if cache needs to be initialized or refreshed
+    needs_reload = _cached_accounts is None
     if not needs_reload:
-        for md_path in glob.glob(os.path.join(accounts_dir, '*.md')):
-            if os.path.getmtime(md_path) > _cache_load_time:
-                needs_reload = True
-                break
+        md_paths = set(glob.glob(os.path.join(accounts_dir, '*.md')))
+        cached_file_count = len([p for p in md_paths if os.path.basename(p).upper() != 'TEMPLATE.MD'])
+        if cached_file_count != len(_cached_accounts):
+            needs_reload = True
+        else:
+            for md_path in md_paths:
+                if os.path.getmtime(md_path) > _cache_load_time:
+                    needs_reload = True
+                    break
 
     if needs_reload:
         _cache_load_time = time.time()
