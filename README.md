@@ -18,7 +18,7 @@ A production-ready web application that generates high-caliber executive outreac
   - 120-150 word constraint
   - Executive-caliber CTAs
 
-- **Multi-Provider Support**: OpenAI (GPT-4o) and Anthropic (Claude 3.5 Sonnet)
+- **Anthropic Claude**: Powered by Claude Sonnet for high-quality generation
 
 - **Modern UI**: Clean, responsive landing page with real-time generation
 
@@ -27,7 +27,7 @@ A production-ready web application that generates high-caliber executive outreac
 ### 1. Prerequisites
 
 - Python 3.9+
-- OpenAI API key OR Anthropic API key
+- Anthropic API key
 
 ### 2. Installation
 
@@ -68,7 +68,6 @@ Generate 5 email templates.
   "unique_fact": "Recently named CIO of the Year finalist",
   "business_initiative": "Scaling AI use cases from 5 to 50 by Q4",
   "manager_name": "John Smith",
-  "model_provider": "openai"
 }
 ```
 
@@ -86,7 +85,6 @@ Generate 5 email templates.
     "prospect_name": "Sarah Johnson",
     "prospect_company": "Acme Financial Services",
     "manager_name": "John Smith",
-    "model_provider": "openai"
   }
 }
 ```
@@ -111,7 +109,7 @@ app/
 ├── main.py              # FastAPI application
 ├── generator.py         # Core generation logic
 ├── prompts.py           # Mega-Prompt v13 template
-└── model_client.py      # OpenAI/Anthropic abstraction
+└── model_client.py      # Anthropic API client
 static/
 └── index.html           # Landing page UI
 ```
@@ -169,6 +167,22 @@ pytest tests/ -v
 - **test_api.py**: 10 tests - FastAPI endpoint testing
 
 See [TESTING.md](TESTING.md) for detailed testing documentation.
+
+## Account Knowledge
+
+The app includes a markdown-based account knowledge system that provides company-specific context for email generation.
+
+### Adding a New Account
+
+1. Copy the template: `cp accounts/TEMPLATE.md accounts/YourCompany.md`
+2. Fill in the sections (Overview, Situation, Key Initiatives, Positioning, Team Contacts, Contact Notes)
+3. The app picks up new files automatically — no restart needed
+
+### Account File Format
+
+Each account is a markdown file in the `accounts/` directory. See `accounts/BMO.md` for a complete example and `accounts/TEMPLATE.md` for the blank template.
+
+The parser reads `## ` sections and extracts structured data (bold key-value pairs, bullet lists, `### ` sub-headers for contacts and differentiators).
 
 ## Troubleshooting
 

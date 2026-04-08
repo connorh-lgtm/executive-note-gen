@@ -91,8 +91,7 @@ async def generate(request: GenerateRequest):
             unique_fact=request.unique_fact,
             business_initiative=request.business_initiative,
             manager_name=request.manager_name,
-            meeting_purpose=request.meeting_purpose,
-            model_provider="anthropic"
+            meeting_purpose=request.meeting_purpose
         )
         return result
     except ValueError as e:

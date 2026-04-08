@@ -1,102 +1,189 @@
 """
-Account knowledge system for storing and retrieving company-specific context
+Account knowledge system — reads company context from markdown files in accounts/
 """
+import os
+import re
+import glob
+import time
 
-# Account knowledge database
-ACCOUNT_KNOWLEDGE = {
-    "BMO": {
-        "company_name": "BMO",
-        "industry": "Banking",
-        "status": "Active - Pilot in Jan/Feb",
-        
-        # Key context
-        "situation": {
-            "focus": "Becoming a leading digital bank, emphasis on US market",
-            "challenges": [
-                "Managing legacy systems (COBOL, mainframe, older Angular versions)",
-                "Significant tech debt/toil and tribal knowledge",
-                "Shared infrastructure teams and centralized governance slow adoption",
-                "Already invested in GitHub and GitHub Copilot"
-            ],
-            "recent_activity": "Onsite presentation 10/28/25, currently vetting security"
-        },
-        
-        # Key stakeholders we're working with
-        "team_contacts": {
-            "us_digital": ["Kaus", "Eric P"],
-            "architecture": ["Seshu", "Raju", "Rajeev"],
-            "ai_innovation": ["Raju", "Rajeev"],
-            "canadian_business": ["Joe Larizza"]
-        },
-        
-        # Use cases they care about
-        "key_initiatives": [
-            "COBOL/mainframe/legacy modernization",
-            "Angular framework upgrades",
-            "Security vulnerability remediation",
-            "Bug triage and fixes",
-            "Documentation and sequence diagrams for undocumented systems"
-        ],
-        
-        # Messaging that resonates
-        "positioning": {
-            "focus": "Brownfield work, parallelizable tasks, governance & auditability",
-            "differentiators": [
-                "Agent vs IDE assistant (Copilot is synchronous, Devin is autonomous)",
-                "Parallel sessions (100+ concurrent)",
-                "Full command & action logs for governance",
-                "Multi-repo and DeepWiki capabilities"
-            ],
-            "competitive": "Complement to GitHub Copilot, not replacement"
-        },
-        
-        # Personal notes about contacts
-        "contact_notes": {
-            "Lakshmi": {
-                "title": "SVP Engineering",
-                "notes": "Missed Chicago onsite, involved with Hopeworks charity",
-                "last_contact": "Follow-up after onsite"
-            },
-            "Sam": {
-                "title": "Director",
-                "notes": "Avid runner and hiker, rock climbing enthusiast",
-                "met_at": "Chicago onsite"
-            },
-            "Mariusz": {
-                "title": "Executive",
-                "notes": "Led QuickPay launch, interested in InnoV8 Hackathon model"
-            },
-            "Tamekia": {
-                "title": "Executive",
-                "notes": "Key driver of Bank of the West merger (330+ systems), Celent Model Bank Award"
-            },
-            "Prasad": {
-                "title": "Data Leader",
-                "notes": "Quote: 'Organizations that succeed won't just govern data — they'll leverage it as a catalyst'"
-            }
-        }
-    },
-    
-    # Template for adding more companies
-    "TEMPLATE": {
-        "company_name": "",
-        "industry": "",
-        "status": "",
-        "situation": {
-            "focus": "",
-            "challenges": [],
-            "recent_activity": ""
-        },
-        "team_contacts": {},
-        "key_initiatives": [],
-        "positioning": {
-            "focus": "",
-            "differentiators": [],
-            "competitive": ""
-        },
-        "contact_notes": {}
+
+ACCOUNTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'accounts')
+
+# Module-level cache (None = never loaded, {} = loaded but empty)
+_cached_accounts: dict | None = None
+_cached_file_count: int = 0
+_cache_load_time: float = 0.0
+
+
+def _parse_account_markdown(file_path: str) -> dict:
+    """
+    Parse an account markdown file into the dict structure expected by the rest of the app.
+    """
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Extract company name from H1
+    h1_match = re.search(r'^# (.+)', content, re.MULTILINE)
+    company_name = h1_match.group(1).strip() if h1_match else os.path.splitext(os.path.basename(file_path))[0]
+
+    # Split into ## sections
+    sections: dict[str, str] = {}
+    parts = re.split(r'^## ', content, flags=re.MULTILINE)
+    for part in parts[1:]:  # skip preamble before first ##
+        lines = part.split('\n', 1)
+        header = lines[0].strip()
+        body = lines[1] if len(lines) > 1 else ''
+        sections[header.lower()] = body
+
+    # --- Overview ---
+    industry = ''
+    status = ''
+    if 'overview' in sections:
+        overview = sections['overview']
+        m = re.search(r'\*\*Industry:\*\*\s*(.+)', overview)
+        if m:
+            industry = m.group(1).strip()
+        m = re.search(r'\*\*Status:\*\*\s*(.+)', overview)
+        if m:
+            status = m.group(1).strip()
+
+    # --- Situation ---
+    situation: dict = {"focus": "", "challenges": [], "recent_activity": ""}
+    if 'situation' in sections:
+        sit_text = sections['situation']
+        m = re.search(r'\*\*Focus:\*\*\s*(.+)', sit_text)
+        if m:
+            situation['focus'] = m.group(1).strip()
+        m = re.search(r'\*\*Recent Activity:\*\*\s*(.+)', sit_text)
+        if m:
+            situation['recent_activity'] = m.group(1).strip()
+        # Challenges are bullet points under ### Challenges
+        challenges_match = re.search(r'### Challenges\s*\n((?:- .+\n?)+)', sit_text)
+        if challenges_match:
+            situation['challenges'] = [
+                line.removeprefix('- ').strip()
+                for line in challenges_match.group(1).strip().split('\n')
+                if line.strip().startswith('-')
+            ]
+
+    # --- Key Initiatives ---
+    key_initiatives: list[str] = []
+    if 'key initiatives' in sections:
+        for line in sections['key initiatives'].strip().split('\n'):
+            line = line.strip()
+            if line.startswith('-'):
+                key_initiatives.append(line.removeprefix('- ').strip())
+
+    # --- Positioning ---
+    positioning: dict = {"focus": "", "differentiators": [], "competitive": ""}
+    if 'positioning' in sections:
+        pos_text = sections['positioning']
+        m = re.search(r'\*\*Focus:\*\*\s*(.+)', pos_text)
+        if m:
+            positioning['focus'] = m.group(1).strip()
+        m = re.search(r'\*\*Competitive:\*\*\s*(.+)', pos_text)
+        if m:
+            positioning['competitive'] = m.group(1).strip()
+        diff_match = re.search(r'### Differentiators\s*\n((?:- .+\n?)+)', pos_text)
+        if diff_match:
+            positioning['differentiators'] = [
+                line.removeprefix('- ').strip()
+                for line in diff_match.group(1).strip().split('\n')
+                if line.strip().startswith('-')
+            ]
+
+    # --- Team Contacts ---
+    team_contacts: dict[str, list[str]] = {}
+    if 'team contacts' in sections:
+        for m in re.finditer(r'\*\*(.+?):\*\*\s*(.+)', sections['team contacts']):
+            team_key = m.group(1).strip().lower().replace(' ', '_')
+            contacts = [c.strip() for c in m.group(2).split(',')]
+            team_contacts[team_key] = contacts
+
+    # --- Contact Notes ---
+    contact_notes: dict[str, dict] = {}
+    if 'contact notes' in sections:
+        cn_text = sections['contact notes']
+        # Split by ### sub-headers
+        contact_parts = re.split(r'^### ', cn_text, flags=re.MULTILINE)
+        for cp in contact_parts[1:]:  # skip preamble
+            cp_lines = cp.split('\n', 1)
+            contact_name = cp_lines[0].strip()
+            contact_body = cp_lines[1] if len(cp_lines) > 1 else ''
+            entry: dict[str, str] = {}
+            for field_match in re.finditer(r'\*\*(.+?):\*\*\s*(.+)', contact_body):
+                field_key = field_match.group(1).strip().lower().replace(' ', '_')
+                entry[field_key] = field_match.group(2).strip()
+            if entry:
+                contact_notes[contact_name] = entry
+
+    return {
+        "company_name": company_name,
+        "industry": industry,
+        "status": status,
+        "situation": situation,
+        "team_contacts": team_contacts,
+        "key_initiatives": key_initiatives,
+        "positioning": positioning,
+        "contact_notes": contact_notes
     }
-}
+
+
+def _load_all_accounts() -> tuple[dict, int]:
+    """
+    Scan accounts/ for *.md files (excluding TEMPLATE.md), parse each, and return
+    a tuple of (accounts dict keyed by uppercase company name, count of non-template files found).
+    """
+    accounts: dict = {}
+    accounts_dir = os.path.normpath(ACCOUNTS_DIR)
+    if not os.path.isdir(accounts_dir):
+        return accounts, 0
+
+    file_count = 0
+    for md_path in glob.glob(os.path.join(accounts_dir, '*.md')):
+        basename = os.path.basename(md_path)
+        if basename.upper() == 'TEMPLATE.MD':
+            continue
+        file_count += 1
+        try:
+            account = _parse_account_markdown(md_path)
+            key = account['company_name'].upper()
+            accounts[key] = account
+        except Exception:
+            # Skip files that fail to parse
+            continue
+
+    return accounts, file_count
+
+
+def _get_accounts() -> dict:
+    """
+    Return cached accounts, reloading if any .md file has been modified since last load.
+    """
+    global _cached_accounts, _cached_file_count, _cache_load_time
+
+    accounts_dir = os.path.normpath(ACCOUNTS_DIR)
+    if not os.path.isdir(accounts_dir):
+        return {}
+
+    # Check if cache needs to be initialized or refreshed
+    needs_reload = _cached_accounts is None
+    if not needs_reload:
+        md_paths = set(glob.glob(os.path.join(accounts_dir, '*.md')))
+        disk_file_count = len([p for p in md_paths if os.path.basename(p).upper() != 'TEMPLATE.MD'])
+        if disk_file_count != _cached_file_count:
+            needs_reload = True
+        else:
+            for md_path in md_paths:
+                if os.path.getmtime(md_path) > _cache_load_time:
+                    needs_reload = True
+                    break
+
+    if needs_reload:
+        _cache_load_time = time.time()
+        _cached_accounts, _cached_file_count = _load_all_accounts()
+
+    return _cached_accounts
 
 
 def get_account_context(company_name: str) -> dict:
@@ -111,15 +198,16 @@ def get_account_context(company_name: str) -> dict:
     """
     # Normalize company name
     company_key = company_name.upper().strip()
+    accounts = _get_accounts()
     
     # Try exact match first
-    if company_key in ACCOUNT_KNOWLEDGE:
-        return ACCOUNT_KNOWLEDGE[company_key]
+    if company_key in accounts:
+        return accounts[company_key]
     
     # Try partial match
-    for key in ACCOUNT_KNOWLEDGE.keys():
+    for key in accounts:
         if company_key in key or key in company_key:
-            return ACCOUNT_KNOWLEDGE[key]
+            return accounts[key]
     
     return None
 
@@ -212,4 +300,4 @@ def format_account_context_for_prompt(company_name: str, prospect_name: str = ""
 
 def list_known_accounts() -> list:
     """Get list of companies with account knowledge"""
-    return [k for k in ACCOUNT_KNOWLEDGE.keys() if k != "TEMPLATE"]
+    return list(_get_accounts().keys())

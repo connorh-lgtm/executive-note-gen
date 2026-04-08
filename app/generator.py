@@ -13,8 +13,7 @@ async def generate_outreach_emails(
     unique_fact: str,
     business_initiative: str,
     manager_name: str = "[Manager's Name]",
-    meeting_purpose: str = "",
-    model_provider: str = "anthropic"
+    meeting_purpose: str = ""
 ) -> dict:
     """
     Generate 1 optimized executive outreach email using mega-prompt v14
@@ -27,7 +26,6 @@ async def generate_outreach_emails(
         unique_fact: Unique fact about prospect or company (award, initiative, etc.)
         business_initiative: Business initiative or challenge
         manager_name: Name of the email sender (executive)
-        model_provider: "openai" or "anthropic"
     
     Returns:
         {
@@ -54,11 +52,10 @@ async def generate_outreach_emails(
         meeting_purpose=meeting_purpose
     )
     
-    # Generate with selected model provider
+    # Generate with Anthropic
     result = await generate_with_model(
         system_prompt=system_prompt,
-        user_prompt=user_prompt,
-        provider=model_provider
+        user_prompt=user_prompt
     )
     
     # Validate response structure
@@ -73,8 +70,7 @@ async def generate_outreach_emails(
         "message_type": message_type,
         "prospect_name": prospect_name,
         "prospect_company": prospect_company,
-        "manager_name": manager_name,
-        "model_provider": model_provider
+        "manager_name": manager_name
     }
     
     return result
