@@ -180,7 +180,7 @@ The app includes a markdown-based account knowledge system that provides company
 
 ### Account File Format
 
-Each account is a markdown file in the `accounts/` directory. See `accounts/BMO.md` for a complete example and `accounts/TEMPLATE.md` for the blank template.
+Each account is a markdown file in the `accounts/` directory. See `accounts/TEMPLATE.md` for the expected format. Fill in each section and the app will pick it up automatically.
 
 The parser reads `## ` sections and extracts structured data (bold key-value pairs, bullet lists, `### ` sub-headers for contacts and differentiators).
 
