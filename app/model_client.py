@@ -1,67 +1,10 @@
 """
-Model provider abstraction for OpenAI and Anthropic
+Model client for Anthropic API
 """
 import os
 import json
 import re
 from typing import Optional
-
-
-async def call_openai(system_prompt: str, user_prompt: str, model: str = "gpt-4o") -> dict:
-    """Call OpenAI API"""
-    try:
-        import openai
-    except ImportError:
-        raise ImportError("openai package not installed. Run: pip install openai")
-    
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable not set")
-    
-    client = openai.AsyncOpenAI(api_key=api_key)
-    
-    response = await client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        temperature=0.7,
-        max_tokens=4000
-    )
-    
-    content = response.choices[0].message.content
-    return parse_json_response(content)
-
-
-async def call_perplexity(system_prompt: str, user_prompt: str, model: str = "sonar-pro") -> dict:
-    """Call Perplexity API (OpenAI-compatible)"""
-    try:
-        import openai
-    except ImportError:
-        raise ImportError("openai package not installed. Run: pip install openai")
-    
-    api_key = os.getenv("PERPLEXITY_API_KEY")
-    if not api_key:
-        raise ValueError("PERPLEXITY_API_KEY environment variable not set")
-    
-    client = openai.AsyncOpenAI(
-        api_key=api_key,
-        base_url="https://api.perplexity.ai"
-    )
-    
-    response = await client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        temperature=0.7,
-        max_tokens=4000
-    )
-    
-    content = response.choices[0].message.content
-    return parse_json_response(content)
 
 
 async def call_anthropic(system_prompt: str, user_prompt: str, model: str = "claude-sonnet-4-20250514") -> dict:
@@ -115,28 +58,19 @@ def parse_json_response(content: str) -> dict:
 async def generate_with_model(
     system_prompt: str,
     user_prompt: str,
-    provider: str = "openai",
+    provider: str = "anthropic",
     model: Optional[str] = None
 ) -> dict:
     """
-    Generate content using specified model provider
+    Generate content using Anthropic
     
     Args:
         system_prompt: System prompt
         user_prompt: User prompt
-        provider: "openai", "anthropic", or "perplexity"
+        provider: Ignored (kept for backward compatibility)
         model: Optional model override
     
     Returns:
         Parsed JSON response
     """
-    provider = provider.lower()
-    
-    if provider == "openai":
-        return await call_openai(system_prompt, user_prompt, model or "gpt-4o")
-    elif provider == "anthropic":
-        return await call_anthropic(system_prompt, user_prompt, model or "claude-sonnet-4-20250514")
-    elif provider == "perplexity":
-        return await call_perplexity(system_prompt, user_prompt, model or "sonar-pro")
-    else:
-        raise ValueError(f"Unsupported provider: {provider}. Use 'openai', 'anthropic', or 'perplexity'")
+    return await call_anthropic(system_prompt, user_prompt, model or "claude-sonnet-4-20250514")

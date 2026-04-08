@@ -25,8 +25,7 @@ async def test_generate_outreach_emails_cold_outreach():
             prospect_company="Acme Corp",
             unique_fact="Named CIO of the Year finalist",
             business_initiative="Scaling AI use cases from 5 to 50",
-            manager_name="John Smith",
-            model_provider="anthropic"
+            manager_name="John Smith"
         )
         
         # Verify result structure
@@ -39,7 +38,6 @@ async def test_generate_outreach_emails_cold_outreach():
         assert result["metadata"]["prospect_name"] == "Sarah Johnson"
         assert result["metadata"]["prospect_company"] == "Acme Corp"
         assert result["metadata"]["manager_name"] == "John Smith"
-        assert result["metadata"]["model_provider"] == "anthropic"
         
         # Verify mock was called
         mock_generate.assert_called_once()
@@ -64,12 +62,10 @@ async def test_generate_outreach_emails_in_person_ask():
             unique_fact="Keynote speaker at AI Summit",
             business_initiative="Leading digital transformation",
             manager_name="Jake Smith",
-            meeting_purpose="Private executive dinner in Chicago on Oct 9th at 6pm at Elske",
-            model_provider="openai"
+            meeting_purpose="Private executive dinner in Chicago on Oct 9th at 6pm at Elske"
         )
         
         assert result["metadata"]["message_type"] == "in_person_ask"
-        assert result["metadata"]["model_provider"] == "openai"
 
 
 @pytest.mark.asyncio
