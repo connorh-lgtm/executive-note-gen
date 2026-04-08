@@ -1,7 +1,7 @@
 """
 FastAPI backend for Executive Note Generator
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -9,6 +9,9 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import os
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Load environment variables from .env file
 load_dotenv()
@@ -16,7 +19,17 @@ load_dotenv()
 from app.generator import generate_outreach_emails
 from app.linkedin_enrichment import enrich_linkedin_profile
 
+# Rate limit configuration (configurable via environment variables)
+GENERATE_RATE_LIMIT = os.getenv("GENERATE_RATE_LIMIT", "10/minute")
+ENRICH_RATE_LIMIT = os.getenv("ENRICH_RATE_LIMIT", "20/minute")
+FEEDBACK_RATE_LIMIT = os.getenv("FEEDBACK_RATE_LIMIT", "30/minute")
+
 app = FastAPI(title="Executive Note Generator", version="1.0.0")
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware
 app.add_middleware(
@@ -46,10 +59,16 @@ class GenerateRequest(BaseModel):
     linkedin_url: Optional[str] = Field(default=None, description="LinkedIn profile URL for auto-enrichment")
 
 
-class GenerateResponse(BaseModel):
-    """Response model with single email template"""
+class EmailTemplate(BaseModel):
+    """Single email template"""
+    angle: str
     subject: str
     body: str
+
+
+class GenerateResponse(BaseModel):
+    """Response model with 5 email templates"""
+    templates: list[EmailTemplate]
     metadata: dict
 
 
@@ -78,20 +97,21 @@ async def health():
 
 
 @app.post("/api/generate", response_model=GenerateResponse)
-async def generate(request: GenerateRequest):
+@limiter.limit(GENERATE_RATE_LIMIT)
+async def generate(request: Request, body: GenerateRequest):
     """
-    Generate 1 optimized executive outreach email template
+    Generate 5 optimized executive outreach email templates
     """
     try:
         result = await generate_outreach_emails(
-            message_type=request.message_type,
-            prospect_name=request.prospect_name,
-            prospect_title=request.prospect_title,
-            prospect_company=request.prospect_company,
-            unique_fact=request.unique_fact,
-            business_initiative=request.business_initiative,
-            manager_name=request.manager_name,
-            meeting_purpose=request.meeting_purpose
+            message_type=body.message_type,
+            prospect_name=body.prospect_name,
+            prospect_title=body.prospect_title,
+            prospect_company=body.prospect_company,
+            unique_fact=body.unique_fact,
+            business_initiative=body.business_initiative,
+            manager_name=body.manager_name,
+            meeting_purpose=body.meeting_purpose
         )
         return result
     except ValueError as e:
@@ -101,7 +121,8 @@ async def generate(request: GenerateRequest):
 
 
 @app.post("/api/enrich")
-async def enrich_profile(linkedin_url: str, prospect_name: str, prospect_title: str = "", prospect_company: str = ""):
+@limiter.limit(ENRICH_RATE_LIMIT)
+async def enrich_profile(request: Request, linkedin_url: str, prospect_name: str, prospect_title: str = "", prospect_company: str = ""):
     """
     Enrich LinkedIn profile using Perplexity API
     """
@@ -132,7 +153,8 @@ class EnrichRequest(BaseModel):
 
 
 @app.post("/api/summarize-bio")
-async def summarize_bio(request: dict):
+@limiter.limit(ENRICH_RATE_LIMIT)
+async def summarize_bio(request: Request, body: dict):
     """
     Legacy endpoint - alias for /api/enrich
     Summarize LinkedIn bio using Perplexity API
@@ -140,13 +162,13 @@ async def summarize_bio(request: dict):
     """
     try:
         # Log the incoming request for debugging
-        print(f"Received summarize-bio request: {request}")
+        print(f"Received summarize-bio request: {body}")
         
         # Extract fields with fallbacks
-        linkedin_url = request.get('linkedin_url') or request.get('linkedinUrl', '')
-        prospect_name = request.get('prospect_name') or request.get('prospectName', '')
-        prospect_title = request.get('prospect_title') or request.get('prospectTitle', '')
-        prospect_company = request.get('prospect_company') or request.get('prospectCompany', '')
+        linkedin_url = body.get('linkedin_url') or body.get('linkedinUrl', '')
+        prospect_name = body.get('prospect_name') or body.get('prospectName', '')
+        prospect_title = body.get('prospect_title') or body.get('prospectTitle', '')
+        prospect_company = body.get('prospect_company') or body.get('prospectCompany', '')
         
         if not linkedin_url or not prospect_name:
             return {
@@ -155,7 +177,7 @@ async def summarize_bio(request: dict):
                 "linkedin_insight": "Missing required fields: linkedin_url or prospect_name"
             }
         
-        result = await enrich_profile(
+        result = await enrich_linkedin_profile(
             linkedin_url=linkedin_url,
             prospect_name=prospect_name,
             prospect_title=prospect_title,
@@ -174,7 +196,8 @@ async def summarize_bio(request: dict):
 
 
 @app.post("/api/feedback")
-async def submit_feedback(request: FeedbackRequest):
+@limiter.limit(FEEDBACK_RATE_LIMIT)
+async def submit_feedback(request: Request, body: FeedbackRequest):
     """
     Save user feedback for improving future outputs
     """
@@ -191,7 +214,7 @@ async def submit_feedback(request: FeedbackRequest):
         feedback_file = os.path.join(feedback_dir, f"feedback_{timestamp}.json")
         
         # Save feedback to file
-        feedback_data = request.model_dump()
+        feedback_data = body.model_dump()
         with open(feedback_file, 'w') as f:
             json.dump(feedback_data, f, indent=2)
         

@@ -6,14 +6,43 @@ from unittest.mock import AsyncMock, patch
 from app.generator import generate_outreach_emails
 
 
+def _make_mock_templates():
+    """Helper to create a standard 5-template mock response"""
+    return {
+        "templates": [
+            {
+                "angle": "Strategy & Digital Leadership",
+                "subject": "AI Scale & Strategic Velocity",
+                "body": "Hi Sarah,\n\nYour CIO of the Year recognition highlights your leadership in strategy.\n\nDevin has rolled out at Citi and Goldman Sachs. Banks see 6-12x efficiency gains.\n\nWould you be open to a quick Zoom next week?\n\nBest,\nJohn"
+            },
+            {
+                "angle": "Technology Modernization",
+                "subject": "Modernize Legacy Systems Fast",
+                "body": "Hi Sarah,\n\nScaling AI from 5 to 50 use cases requires modern infrastructure.\n\nDevin accelerates legacy migrations and modernization projects 6-12x.\n\nCan we find time to connect this week?\n\nBest,\nJohn"
+            },
+            {
+                "angle": "Financial Efficiency",
+                "subject": "Cut Engineering Costs Dramatically",
+                "body": "Hi Sarah,\n\nYour efficiency targets demand smart resource allocation.\n\nDevin delivers 6-12x efficiency gains on engineering tasks at Citi and Goldman.\n\nWould a quick call work next week?\n\nBest,\nJohn"
+            },
+            {
+                "angle": "Customer Value & Growth",
+                "subject": "Accelerate Customer Innovation Delivery",
+                "body": "Hi Sarah,\n\nScaling AI use cases drives direct customer value.\n\nDevin frees engineering capacity so teams focus on customer innovation.\n\nOpen to connecting this week?\n\nBest,\nJohn"
+            },
+            {
+                "angle": "Competitive Advantage",
+                "subject": "Stay Ahead With AI Engineering",
+                "body": "Hi Sarah,\n\nYour competitors are already deploying AI agents.\n\nDevin is in production at Citi and Goldman, delivering 6-12x gains.\n\nLet's find time to discuss next week?\n\nBest,\nJohn"
+            }
+        ]
+    }
+
+
 @pytest.mark.asyncio
 async def test_generate_outreach_emails_cold_outreach():
-    """Test cold outreach email generation"""
-    # Mock the model response
-    mock_response = {
-        "subject": "AI Scale & Strategic Velocity",
-        "body": "Hi Sarah,\n\nYour CIO of the Year recognition highlights your leadership. Scaling AI from 5 to 50 use cases requires both velocity and efficiency.\n\nDevin, the AI software engineer, has rolled out in production at Citi and Goldman Sachs. On average, banks see 6–12x efficiency gains on human engineering time with Devin.\n\nWould you be open to a quick Zoom next week?\n\nBest,\nJohn"
-    }
+    """Test cold outreach email generation returns 5 templates"""
+    mock_response = _make_mock_templates()
     
     with patch('app.generator.generate_with_model', new_callable=AsyncMock) as mock_generate:
         mock_generate.return_value = mock_response
@@ -29,15 +58,23 @@ async def test_generate_outreach_emails_cold_outreach():
         )
         
         # Verify result structure
-        assert "subject" in result
-        assert "body" in result
+        assert "templates" in result
+        assert isinstance(result["templates"], list)
+        assert len(result["templates"]) == 5
         assert "metadata" in result
+        
+        # Verify each template has required fields
+        for template in result["templates"]:
+            assert "angle" in template
+            assert "subject" in template
+            assert "body" in template
         
         # Verify metadata
         assert result["metadata"]["message_type"] == "cold_outreach"
         assert result["metadata"]["prospect_name"] == "Sarah Johnson"
         assert result["metadata"]["prospect_company"] == "Acme Corp"
         assert result["metadata"]["manager_name"] == "John Smith"
+        assert result["metadata"]["model_provider"] == "anthropic"
         
         # Verify mock was called
         mock_generate.assert_called_once()
@@ -45,11 +82,8 @@ async def test_generate_outreach_emails_cold_outreach():
 
 @pytest.mark.asyncio
 async def test_generate_outreach_emails_in_person_ask():
-    """Test in-person ask email generation"""
-    mock_response = {
-        "subject": "Chicago Executive Dinner Invitation",
-        "body": "Hi Jane,\n\nI'd like to invite you to a private executive dinner in Chicago on Oct 9th at 6pm at Elske.\n\nYour AI Summit keynote demonstrated thought leadership. This dinner brings together peers discussing agentic AI impact.\n\nCan I save you a seat?\n\nBest,\nJake"
-    }
+    """Test in-person ask email generation returns 5 templates"""
+    mock_response = _make_mock_templates()
     
     with patch('app.generator.generate_with_model', new_callable=AsyncMock) as mock_generate:
         mock_generate.return_value = mock_response
@@ -65,16 +99,15 @@ async def test_generate_outreach_emails_in_person_ask():
             meeting_purpose="Private executive dinner in Chicago on Oct 9th at 6pm at Elske"
         )
         
+        assert "templates" in result
+        assert len(result["templates"]) == 5
         assert result["metadata"]["message_type"] == "in_person_ask"
 
 
 @pytest.mark.asyncio
 async def test_generate_outreach_emails_executive_alignment():
-    """Test executive alignment email generation"""
-    mock_response = {
-        "subject": "BMO & Devin Strategy",
-        "body": "Hi Eric,\n\nCongrats on Fast Company recognition. We've met with your team about legacy migrations.\n\nDevin has rolled out at Citi and Goldman. Banks see 6–12x efficiency gains.\n\nCan our EAs coordinate a call?\n\nCheers,\nRussell"
-    }
+    """Test executive alignment email generation returns 5 templates"""
+    mock_response = _make_mock_templates()
     
     with patch('app.generator.generate_with_model', new_callable=AsyncMock) as mock_generate:
         mock_generate.return_value = mock_response
@@ -89,20 +122,23 @@ async def test_generate_outreach_emails_executive_alignment():
             manager_name="Russell"
         )
         
+        assert "templates" in result
+        assert len(result["templates"]) == 5
         assert result["metadata"]["message_type"] == "executive_alignment"
 
 
 @pytest.mark.asyncio
-async def test_generate_outreach_emails_missing_subject():
-    """Test error handling when model response missing subject"""
+async def test_generate_outreach_emails_missing_templates():
+    """Test error handling when model response missing templates array"""
     mock_response = {
-        "body": "Email body without subject"
+        "subject": "Old format response",
+        "body": "This is the old format"
     }
     
     with patch('app.generator.generate_with_model', new_callable=AsyncMock) as mock_generate:
         mock_generate.return_value = mock_response
         
-        with pytest.raises(ValueError, match="missing 'subject' field"):
+        with pytest.raises(ValueError, match="missing 'templates' array"):
             await generate_outreach_emails(
                 message_type="cold_outreach",
                 prospect_name="Test",
@@ -114,16 +150,64 @@ async def test_generate_outreach_emails_missing_subject():
 
 
 @pytest.mark.asyncio
-async def test_generate_outreach_emails_missing_body():
-    """Test error handling when model response missing body"""
+async def test_generate_outreach_emails_missing_subject_in_template():
+    """Test error handling when a template is missing subject"""
     mock_response = {
-        "subject": "Test Subject"
+        "templates": [
+            {"angle": "Strategy & Digital Leadership", "body": "Email body without subject"}
+        ]
     }
     
     with patch('app.generator.generate_with_model', new_callable=AsyncMock) as mock_generate:
         mock_generate.return_value = mock_response
         
-        with pytest.raises(ValueError, match="missing 'body' field"):
+        with pytest.raises(ValueError, match="Template 0 missing 'subject' field"):
+            await generate_outreach_emails(
+                message_type="cold_outreach",
+                prospect_name="Test",
+                prospect_title="Test",
+                prospect_company="Test",
+                unique_fact="Test",
+                business_initiative="Test"
+            )
+
+
+@pytest.mark.asyncio
+async def test_generate_outreach_emails_missing_body_in_template():
+    """Test error handling when a template is missing body"""
+    mock_response = {
+        "templates": [
+            {"angle": "Strategy & Digital Leadership", "subject": "Test Subject"}
+        ]
+    }
+    
+    with patch('app.generator.generate_with_model', new_callable=AsyncMock) as mock_generate:
+        mock_generate.return_value = mock_response
+        
+        with pytest.raises(ValueError, match="Template 0 missing 'body' field"):
+            await generate_outreach_emails(
+                message_type="cold_outreach",
+                prospect_name="Test",
+                prospect_title="Test",
+                prospect_company="Test",
+                unique_fact="Test",
+                business_initiative="Test"
+            )
+
+
+@pytest.mark.asyncio
+async def test_generate_outreach_emails_missing_angle_in_template():
+    """Test error handling when a template is missing angle"""
+    mock_response = {
+        "templates": [
+            {"subject": "Test Subject", "body": "Test body"}
+        ]
+    }
+    
+    with patch('app.generator.generate_with_model', new_callable=AsyncMock) as mock_generate:
+        mock_generate.return_value = mock_response
+        
+        with pytest.raises(ValueError, match="Template 0 missing 'angle' field"):
             await generate_outreach_emails(
                 message_type="cold_outreach",
                 prospect_name="Test",
@@ -137,10 +221,7 @@ async def test_generate_outreach_emails_missing_body():
 @pytest.mark.asyncio
 async def test_generate_outreach_emails_default_manager():
     """Test generation with default manager name"""
-    mock_response = {
-        "subject": "Test Subject",
-        "body": "Test body"
-    }
+    mock_response = _make_mock_templates()
     
     with patch('app.generator.generate_with_model', new_callable=AsyncMock) as mock_generate:
         mock_generate.return_value = mock_response

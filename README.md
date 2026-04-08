@@ -1,6 +1,6 @@
 # Executive Note Generator
 
-A production-ready web application that generates high-caliber executive outreach emails using **Mega-Prompt v13**. Built for crafting Fortune 50 EVP-level communications to enterprise executives (CIO, CTO, CDO, Head of Engineering).
+A production-ready web application that generates high-caliber executive outreach emails using **Mega-Prompt v14**. Built for crafting Fortune 50 EVP-level communications to enterprise executives (CIO, CTO, CDO, Head of Engineering).
 
 ## Features
 
@@ -11,11 +11,11 @@ A production-ready web application that generates high-caliber executive outreac
   - Customer Value & Growth
   - Competitive Advantage
 
-- **Mega-Prompt v13 Engine**: Embedded prompt engineering framework with:
+- **Mega-Prompt v14 Engine**: Embedded prompt engineering framework with:
   - Board-level tone and structure
   - Case study library (Nubank, Goldman Sachs, Ramp, etc.)
   - Global FS validation paragraph
-  - 120-150 word constraint
+  - 80-110 word constraint
   - Executive-caliber CTAs
 
 - **Anthropic Claude**: Powered by Claude Sonnet for high-quality generation
@@ -89,13 +89,13 @@ Generate 5 email templates.
 }
 ```
 
-## Mega-Prompt v13 Details
+## Mega-Prompt v14 Details
 
 The application uses a carefully structured prompt that ensures:
 
 - **Role**: Fortune 50 EVP writing to enterprise executives
 - **Structure**: Hook → Business Case → Devin Value → Case Study → FS Validation → CTA
-- **Constraints**: 120-150 words, ≤6 word subjects, boardroom tone
+- **Constraints**: 80-110 words, ≤6 word subjects, boardroom tone
 - **Case Studies**: Rotates through Nubank, Bilt, Gumroad, Ramp, Linktree, Crossmint, Goldman Sachs
 - **Validation**: Always includes Citi/Goldman Sachs production deployment proof
 - **Personalization**: Optional manager background (Medallia, global experience, etc.)
