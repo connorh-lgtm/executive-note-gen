@@ -234,7 +234,7 @@
             <!-- Output Panel -->
             <div class="card-shadow bg-white rounded-lg p-8">
                 <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-semibold text-gray-800">Generated Email</h2>
+                    <h2 class="text-2xl font-semibold text-gray-800">Generated Emails</h2>
                     <button 
                         id="newEmailBtn"
                         onclick="resetForm()"
@@ -332,6 +332,9 @@
                         method: 'POST'
                     })
                     .then(response => {
+                        if (response.status === 429) {
+                            throw new Error('Rate limit exceeded. Please wait a moment before trying again.');
+                        }
                         if (response.ok) {
                             return response.json();
                         } else {
@@ -479,6 +482,9 @@
                             method: 'POST'
                         })
                         .then(response => {
+                            if (response.status === 429) {
+                                throw new Error('Rate limit exceeded. Please wait a moment before trying again.');
+                            }
                             if (response.ok) {
                                 return response.json();
                             } else {
@@ -569,6 +575,9 @@
                 });
                 
                 if (!response.ok) {
+                    if (response.status === 429) {
+                        throw new Error('Rate limit exceeded. Please wait a moment before generating again.');
+                    }
                     const error = await response.json();
                     throw new Error(error.detail || 'Generation failed');
                 }
@@ -589,6 +598,7 @@
         function displayEmail(result) {
             // Store result globally for feedback system
             window.currentResult = result;
+            window.currentTemplateIndex = 0;
             
             emptyState.classList.add('hidden');
             emailContainer.classList.remove('hidden');
@@ -597,21 +607,24 @@
             // Save to history
             saveToHistory(result);
             
+            const templates = result.templates || [];
+            
+            // Build tab buttons
+            const tabsHtml = templates.map((t, i) => `
+                <button onclick="showTemplate(${i})" class="tab-btn px-3 py-1.5 text-sm rounded-lg whitespace-nowrap transition ${
+                    i === 0 ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }">${escapeHtml(t.angle)}</button>
+            `).join('');
+            
             emailContainer.innerHTML = `
-                <div class="bg-gray-50 rounded-lg p-6 fade-in">
-                    <div class="flex items-start justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800">${escapeHtml(result.subject)}</h3>
-                        <button 
-                            onclick="copyEmail()"
-                            class="text-gray-400 hover:text-purple-600 transition"
-                            title="Copy to clipboard"
-                        >
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                            </svg>
-                        </button>
+                <div class="fade-in">
+                    <!-- Tabs -->
+                    <div class="flex space-x-2 mb-4 overflow-x-auto pb-2" id="templateTabs">
+                        ${tabsHtml}
                     </div>
-                    <div class="text-gray-700 leading-relaxed whitespace-pre-wrap border-t pt-4" id="emailBody">${convertMarkdownLinks(escapeHtml(result.body))}</div>
+                    
+                    <!-- Template Content -->
+                    <div id="templateContent" class="bg-gray-50 rounded-lg p-6"></div>
                     
                     <!-- Feedback Section -->
                     <div class="mt-6 pt-6 border-t">
@@ -670,7 +683,7 @@
                         
                         <!-- Feedback Success Message -->
                         <div id="feedbackSuccess" class="hidden mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                            <p class="text-green-700 text-sm">✓ Feedback saved! This will help improve future outputs.</p>
+                            <p class="text-green-700 text-sm">Feedback saved! This will help improve future outputs.</p>
                         </div>
                     </div>
                     
@@ -679,6 +692,9 @@
                     </div>
                 </div>
             `;
+            
+            // Show first template
+            showTemplate(0);
             
             // Attach event listeners to dynamically created buttons
             setTimeout(() => {
@@ -696,19 +712,63 @@
             }, 0);
         }
 
+        function showTemplate(index) {
+            const templates = window.currentResult.templates || [];
+            if (index < 0 || index >= templates.length) return;
+            
+            window.currentTemplateIndex = index;
+            const template = templates[index];
+            
+            // Update tab styling
+            const tabs = document.querySelectorAll('#templateTabs .tab-btn');
+            tabs.forEach((tab, i) => {
+                if (i === index) {
+                    tab.className = 'tab-btn px-3 py-1.5 text-sm rounded-lg whitespace-nowrap transition bg-purple-600 text-white';
+                } else {
+                    tab.className = 'tab-btn px-3 py-1.5 text-sm rounded-lg whitespace-nowrap transition bg-gray-100 text-gray-600 hover:bg-gray-200';
+                }
+            });
+            
+            // Render template content
+            const contentEl = document.getElementById('templateContent');
+            contentEl.innerHTML = `
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <span class="inline-block px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded mb-2">${escapeHtml(template.angle)}</span>
+                        <h3 class="text-xl font-semibold text-gray-800">${escapeHtml(template.subject)}</h3>
+                    </div>
+                    <button 
+                        onclick="copyEmail()"
+                        class="text-gray-400 hover:text-purple-600 transition ml-4 flex-shrink-0"
+                        title="Copy to clipboard"
+                    >
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="text-gray-700 leading-relaxed whitespace-pre-wrap border-t pt-4">${convertMarkdownLinks(escapeHtml(template.body))}</div>
+            `;
+        }
+
         function copyEmail() {
-            const subject = emailContainer.querySelector('h3').textContent;
-            const body = emailContainer.querySelector('.whitespace-pre-wrap').textContent;
-            const text = `Subject: ${subject}\n\n${body}`;
+            const templates = window.currentResult.templates || [];
+            const idx = window.currentTemplateIndex || 0;
+            const template = templates[idx];
+            if (!template) return;
+            
+            const text = `Subject: ${template.subject}\n\n${template.body}`;
             
             navigator.clipboard.writeText(text).then(() => {
-                // Show success feedback
-                const btn = emailContainer.querySelector('button');
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                }, 2000);
+                // Show success feedback on the copy button in templateContent
+                const btn = document.querySelector('#templateContent button[onclick="copyEmail()"]');
+                if (btn) {
+                    const originalHTML = btn.innerHTML;
+                    btn.innerHTML = '<svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                    setTimeout(() => {
+                        btn.innerHTML = originalHTML;
+                    }, 2000);
+                }
             });
         }
 
@@ -786,8 +846,8 @@
             const feedbackData = {
                 feedback_type: currentFeedbackType,
                 original_output: {
-                    subject: window.currentResult.subject,
-                    body: window.currentResult.body
+                    templates: window.currentResult.templates,
+                    current_template_index: window.currentTemplateIndex || 0
                 },
                 improved_version: improvedVersion || null,
                 metadata: window.currentResult.metadata,
@@ -866,8 +926,7 @@
                 prospect_name: result.metadata.prospect_name || 'Unknown',
                 prospect_company: result.metadata.prospect_company || '',
                 message_type: result.metadata.message_type,
-                subject: result.subject,
-                body: result.body,
+                templates: result.templates,
                 timestamp: new Date().toISOString(),
                 metadata: result.metadata
             };
@@ -910,8 +969,7 @@
             
             // Store as current result
             window.currentResult = {
-                subject: item.subject,
-                body: item.body,
+                templates: item.templates,
                 metadata: item.metadata
             };
             

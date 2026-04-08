@@ -233,7 +233,7 @@ Your emails should sound like they were written by a real person, not AI.
 You are representing {manager_name}, who will be the sender of these emails.
 
 [OBJECTIVE]
-Produce 1 highly optimized outreach email that sounds natural and personal.
+Produce 5 distinct outreach emails, each from a different strategic angle.
 Match the conversational, human tone of the examples below - NOT formal or corporate.
 
 {message_type_instructions}
@@ -290,18 +290,18 @@ Optional, only if natural:
 - Tone: Optimistic, positive, people-first
 
 [STRATEGIC APPROACH]
-Choose the most relevant strategic angle for this prospect:
-- Strategy & Digital Leadership
-- Technology Modernization
-- Financial Efficiency
-- Customer Value & Growth
-- Competitive Advantage
+Generate one email for EACH of these 5 strategic angles:
+1. Strategy & Digital Leadership
+2. Technology Modernization
+3. Financial Efficiency
+4. Customer Value & Growth
+5. Competitive Advantage
 
-Synthesize the strongest elements into one cohesive message:
-- Use the most compelling hook
-- Combine the strongest business case points
-- Include the most relevant case study
-- Use the most natural CTA
+Each email should:
+- Use a different hook and framing appropriate to that angle
+- Combine the strongest business case points for that angle
+- Include the most relevant case study for that angle
+- Use a natural CTA
 - Keep to 80-110 words
 
 [STYLE & CONSTRAINTS]
@@ -317,7 +317,7 @@ Synthesize the strongest elements into one cohesive message:
 - Write like you're emailing a colleague, not pitching a prospect
 """
 
-USER_PROMPT_TEMPLATE = """Generate 1 highly optimized executive outreach email for the following prospect:
+USER_PROMPT_TEMPLATE = """Generate 5 distinct executive outreach emails, one for each strategic angle, for the following prospect:
 
 **Prospect Information:**
 - Name: {prospect_name}
@@ -329,20 +329,45 @@ USER_PROMPT_TEMPLATE = """Generate 1 highly optimized executive outreach email f
 **Output Requirements:**
 Return a valid JSON object with this exact structure:
 {{
-  "subject": "Subject line here (≤6 words)",
-  "body": "Email body here (80-110 words)"
+  "templates": [
+    {{
+      "angle": "Strategy & Digital Leadership",
+      "subject": "Subject line here (≤6 words)",
+      "body": "Email body here (80-110 words)"
+    }},
+    {{
+      "angle": "Technology Modernization",
+      "subject": "...",
+      "body": "..."
+    }},
+    {{
+      "angle": "Financial Efficiency",
+      "subject": "...",
+      "body": "..."
+    }},
+    {{
+      "angle": "Customer Value & Growth",
+      "subject": "...",
+      "body": "..."
+    }},
+    {{
+      "angle": "Competitive Advantage",
+      "subject": "...",
+      "body": "..."
+    }}
+  ]
 }}
 
-Ensure the email:
+Ensure each email:
 - Uses the prospect's first name in greeting
 - Incorporates the unique fact and business initiative naturally
 - Includes Citi/Goldman validation OR uses the most relevant case study
 - Follows the 80-110 word constraint strictly
 - Has a crisp, message-type-appropriate CTA
 - Matches the tone and structure of the provided examples
-- Chooses the most compelling strategic angle for this specific prospect
+- Uses a unique hook and framing appropriate to its strategic angle
 
-This should be your absolute best work - the strongest possible message for this prospect.
+This should be your absolute best work - the strongest possible messages for this prospect.
 
 Return ONLY valid JSON. Do not include markdown code fences or any other text.
 """

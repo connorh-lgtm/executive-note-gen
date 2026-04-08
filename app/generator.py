@@ -16,7 +16,8 @@ async def generate_outreach_emails(
     meeting_purpose: str = ""
 ) -> dict:
     """
-    Generate 1 optimized executive outreach email using mega-prompt v14
+    Generate 5 distinct executive outreach emails using mega-prompt v14,
+    one for each strategic angle.
     
     Args:
         message_type: cold_outreach, in_person_ask, or executive_alignment
@@ -29,14 +30,20 @@ async def generate_outreach_emails(
     
     Returns:
         {
-            "subject": "...",
-            "body": "...",
+            "templates": [
+                {
+                    "angle": "Strategy & Digital Leadership",
+                    "subject": "...",
+                    "body": "..."
+                },
+                ...
+            ],
             "metadata": {
                 "message_type": "...",
                 "prospect_name": "...",
                 "prospect_company": "...",
                 "manager_name": "...",
-                "model_provider": "..."
+                "model_provider": "anthropic"
             }
         }
     """
@@ -59,18 +66,24 @@ async def generate_outreach_emails(
     )
     
     # Validate response structure
-    if "subject" not in result:
-        raise ValueError("Model response missing 'subject' field")
+    if "templates" not in result or not isinstance(result["templates"], list):
+        raise ValueError("Model response missing 'templates' array")
     
-    if "body" not in result:
-        raise ValueError("Model response missing 'body' field")
+    for i, template in enumerate(result["templates"]):
+        if "subject" not in template:
+            raise ValueError(f"Template {i} missing 'subject' field")
+        if "body" not in template:
+            raise ValueError(f"Template {i} missing 'body' field")
+        if "angle" not in template:
+            raise ValueError(f"Template {i} missing 'angle' field")
     
     # Add metadata
     result["metadata"] = {
         "message_type": message_type,
         "prospect_name": prospect_name,
         "prospect_company": prospect_company,
-        "manager_name": manager_name
+        "manager_name": manager_name,
+        "model_provider": "anthropic"
     }
     
     return result

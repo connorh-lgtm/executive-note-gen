@@ -9,6 +9,46 @@ from app.main import app
 client = TestClient(app)
 
 
+def _make_mock_result():
+    """Helper to create a standard mock result with 5 templates"""
+    return {
+        "templates": [
+            {
+                "angle": "Strategy & Digital Leadership",
+                "subject": "Test Subject 1",
+                "body": "Test Body 1"
+            },
+            {
+                "angle": "Technology Modernization",
+                "subject": "Test Subject 2",
+                "body": "Test Body 2"
+            },
+            {
+                "angle": "Financial Efficiency",
+                "subject": "Test Subject 3",
+                "body": "Test Body 3"
+            },
+            {
+                "angle": "Customer Value & Growth",
+                "subject": "Test Subject 4",
+                "body": "Test Body 4"
+            },
+            {
+                "angle": "Competitive Advantage",
+                "subject": "Test Subject 5",
+                "body": "Test Body 5"
+            }
+        ],
+        "metadata": {
+            "message_type": "cold_outreach",
+            "prospect_name": "Test Person",
+            "prospect_company": "Test Corp",
+            "manager_name": "Test Manager",
+            "model_provider": "anthropic"
+        }
+    }
+
+
 def test_root_endpoint():
     """Test root endpoint returns index.html"""
     response = client.get("/")
@@ -24,18 +64,8 @@ def test_health_endpoint():
 
 @patch('app.main.generate_outreach_emails', new_callable=AsyncMock)
 def test_generate_endpoint_success(mock_generate):
-    """Test successful email generation"""
-    mock_generate.return_value = {
-        "subject": "Test Subject",
-        "body": "Test Body",
-        "metadata": {
-            "message_type": "cold_outreach",
-            "prospect_name": "Test Person",
-            "prospect_company": "Test Corp",
-            "manager_name": "Test Manager",
-            "model_provider": "anthropic"
-        }
-    }
+    """Test successful email generation returns 5 templates"""
+    mock_generate.return_value = _make_mock_result()
     
     response = client.post("/api/generate", json={
         "message_type": "cold_outreach",
@@ -49,9 +79,16 @@ def test_generate_endpoint_success(mock_generate):
     
     assert response.status_code == 200
     data = response.json()
-    assert "subject" in data
-    assert "body" in data
+    assert "templates" in data
+    assert isinstance(data["templates"], list)
+    assert len(data["templates"]) == 5
     assert "metadata" in data
+    
+    # Verify each template structure
+    for template in data["templates"]:
+        assert "angle" in template
+        assert "subject" in template
+        assert "body" in template
 
 
 def test_generate_endpoint_missing_fields():
@@ -83,17 +120,9 @@ def test_generate_endpoint_invalid_message_type():
 @patch('app.main.generate_outreach_emails', new_callable=AsyncMock)
 def test_generate_endpoint_with_meeting_purpose(mock_generate):
     """Test generation with meeting purpose for in-person ask"""
-    mock_generate.return_value = {
-        "subject": "Dinner Invitation",
-        "body": "Test Body",
-        "metadata": {
-            "message_type": "in_person_ask",
-            "prospect_name": "Test",
-            "prospect_company": "Test",
-            "manager_name": "[Manager's Name]",
-            "model_provider": "anthropic"
-        }
-    }
+    mock_result = _make_mock_result()
+    mock_result["metadata"]["message_type"] = "in_person_ask"
+    mock_generate.return_value = mock_result
     
     response = client.post("/api/generate", json={
         "message_type": "in_person_ask",
@@ -106,6 +135,9 @@ def test_generate_endpoint_with_meeting_purpose(mock_generate):
     })
     
     assert response.status_code == 200
+    data = response.json()
+    assert "templates" in data
+    assert len(data["templates"]) == 5
 
 
 def test_feedback_endpoint_success():
@@ -113,8 +145,7 @@ def test_feedback_endpoint_success():
     response = client.post("/api/feedback", json={
         "feedback_type": "positive",
         "original_output": {
-            "subject": "Test",
-            "body": "Test"
+            "templates": [{"angle": "Test", "subject": "Test", "body": "Test"}]
         },
         "improved_version": None,
         "metadata": {
@@ -137,7 +168,7 @@ def test_feedback_endpoint_missing_fields():
     assert response.status_code == 422
 
 
-@patch('app.main.enrich_profile', new_callable=AsyncMock)
+@patch('app.main.enrich_linkedin_profile', new_callable=AsyncMock)
 def test_enrich_endpoint_success(mock_enrich):
     """Test LinkedIn enrichment endpoint"""
     mock_enrich.return_value = {
@@ -173,6 +204,13 @@ def test_summarize_bio_endpoint_fallback():
     data = response.json()
     assert "unique_fact" in data
     assert "business_initiative" in data
+
+
+def test_generate_rate_limit():
+    """Test that rate limiting is configured on /api/generate"""
+    # Verify the rate limiter is configured by checking the app state
+    assert hasattr(app.state, 'limiter')
+    assert app.state.limiter is not None
 
 
 if __name__ == "__main__":
