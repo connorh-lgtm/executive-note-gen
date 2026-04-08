@@ -11,6 +11,7 @@ ACCOUNTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'accounts')
 
 # Module-level cache (None = never loaded, {} = loaded but empty)
 _cached_accounts: dict | None = None
+_cached_file_count: int = 0
 _cache_load_time: float = 0.0
 
 
@@ -60,7 +61,7 @@ def _parse_account_markdown(file_path: str) -> dict:
         challenges_match = re.search(r'### Challenges\s*\n((?:- .+\n?)+)', sit_text)
         if challenges_match:
             situation['challenges'] = [
-                line.lstrip('- ').strip()
+                line.removeprefix('- ').strip()
                 for line in challenges_match.group(1).strip().split('\n')
                 if line.strip().startswith('-')
             ]
@@ -71,7 +72,7 @@ def _parse_account_markdown(file_path: str) -> dict:
         for line in sections['key initiatives'].strip().split('\n'):
             line = line.strip()
             if line.startswith('-'):
-                key_initiatives.append(line.lstrip('- ').strip())
+                key_initiatives.append(line.removeprefix('- ').strip())
 
     # --- Positioning ---
     positioning: dict = {"focus": "", "differentiators": [], "competitive": ""}
@@ -86,7 +87,7 @@ def _parse_account_markdown(file_path: str) -> dict:
         diff_match = re.search(r'### Differentiators\s*\n((?:- .+\n?)+)', pos_text)
         if diff_match:
             positioning['differentiators'] = [
-                line.lstrip('- ').strip()
+                line.removeprefix('- ').strip()
                 for line in diff_match.group(1).strip().split('\n')
                 if line.strip().startswith('-')
             ]
@@ -128,20 +129,22 @@ def _parse_account_markdown(file_path: str) -> dict:
     }
 
 
-def _load_all_accounts() -> dict:
+def _load_all_accounts() -> tuple[dict, int]:
     """
     Scan accounts/ for *.md files (excluding TEMPLATE.md), parse each, and return
-    a dict keyed by uppercase company name.
+    a tuple of (accounts dict keyed by uppercase company name, count of non-template files found).
     """
     accounts: dict = {}
     accounts_dir = os.path.normpath(ACCOUNTS_DIR)
     if not os.path.isdir(accounts_dir):
-        return accounts
+        return accounts, 0
 
+    file_count = 0
     for md_path in glob.glob(os.path.join(accounts_dir, '*.md')):
         basename = os.path.basename(md_path)
         if basename.upper() == 'TEMPLATE.MD':
             continue
+        file_count += 1
         try:
             account = _parse_account_markdown(md_path)
             key = account['company_name'].upper()
@@ -150,14 +153,14 @@ def _load_all_accounts() -> dict:
             # Skip files that fail to parse
             continue
 
-    return accounts
+    return accounts, file_count
 
 
 def _get_accounts() -> dict:
     """
     Return cached accounts, reloading if any .md file has been modified since last load.
     """
-    global _cached_accounts, _cache_load_time
+    global _cached_accounts, _cached_file_count, _cache_load_time
 
     accounts_dir = os.path.normpath(ACCOUNTS_DIR)
     if not os.path.isdir(accounts_dir):
@@ -167,8 +170,8 @@ def _get_accounts() -> dict:
     needs_reload = _cached_accounts is None
     if not needs_reload:
         md_paths = set(glob.glob(os.path.join(accounts_dir, '*.md')))
-        cached_file_count = len([p for p in md_paths if os.path.basename(p).upper() != 'TEMPLATE.MD'])
-        if cached_file_count != len(_cached_accounts):
+        disk_file_count = len([p for p in md_paths if os.path.basename(p).upper() != 'TEMPLATE.MD'])
+        if disk_file_count != _cached_file_count:
             needs_reload = True
         else:
             for md_path in md_paths:
@@ -178,7 +181,7 @@ def _get_accounts() -> dict:
 
     if needs_reload:
         _cache_load_time = time.time()
-        _cached_accounts = _load_all_accounts()
+        _cached_accounts, _cached_file_count = _load_all_accounts()
 
     return _cached_accounts
 
